@@ -1,0 +1,70 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Dark mode support */
+@custom-variant dark (&:is(.dark *));
+
+/* Theme mapping */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+}
+
+/* =========================
+   LIGHT THEME
+========================= */
+:root {
+  --background: oklch(0.94 0 0);   /* light gray page */
+  --foreground: oklch(0.145 0 0);
+
+  --card: oklch(1 0 0);            /* white cards */
+  --card-foreground: oklch(0.145 0 0);
+
+  --popover: oklch(1 0 0);         /* 👈 FIX FOR DIALOG */
+  --popover-foreground: oklch(0.145 0 0);
+
+  --muted: oklch(0.90 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+
+  --border: oklch(0.88 0 0);
+}
+
+/* =========================
+   DARK THEME
+========================= */
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+
+  --popover: oklch(0.205 0 0);     /* 👈 FIX FOR DIALOG */
+  --popover-foreground: oklch(0.985 0 0);
+
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.7 0 0);
+
+  --border: oklch(1 0 0 / 10%);
+}
+
+/* =========================
+   BASE
+========================= */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
