@@ -182,7 +182,7 @@ export default function ProductDetailsPage() {
                   <Trash className="h-4 w-4" />
                   Delete
                 </Button>
-                </Can>
+              </Can>
               </CardContent>
             </Card>
 
