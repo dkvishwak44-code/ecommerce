@@ -2,10 +2,12 @@
 
 import { Heart, ShoppingCart, Star } from "lucide-react";
 import QuantitySelector from "./quantity-selector";
+import { useRouter } from "next/navigation";
 
 // import QuantitySelector from "./QuantitySelector";
 
 export default function ProductInfo({ product }) {
+  const router = useRouter();
   return (
     <div>
       {/* CATEGORY */}
@@ -81,7 +83,7 @@ export default function ProductInfo({ product }) {
       <div className="mt-10 flex flex-wrap items-center gap-4">
         <QuantitySelector />
 
-        <button className="flex h-14 items-center gap-3 rounded-xl bg-black px-8 text-white transition hover:opacity-90">
+        <button onClick={()=>{router.push("/cart")}} className="flex h-14 items-center gap-3 rounded-xl bg-black px-8 text-white transition hover:opacity-90">
           <ShoppingCart size={20} />
           Add To Cart
         </button>

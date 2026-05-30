@@ -225,6 +225,7 @@ function MainHeader() {
           <Button
             variant="ghost"
             className="relative h-10 px-3 hover:bg-accent rounded-lg flex items-center gap-2"
+            onClick={() => router.push("/cart")}
           >
             <div className="relative">
               <ShoppingCart
