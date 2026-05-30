@@ -9,17 +9,13 @@ export const metadata = {
   description: "Modern Ecommerce Website",
 };
 
-export default function RootLayout({
-  children,
-}) {
+export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
         <ReduxProvider>
           <ThemeProvider>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
+            <AuthProvider>{children}</AuthProvider>
           </ThemeProvider>
         </ReduxProvider>
       </body>
