@@ -25,6 +25,12 @@ export const createProductSchema = z.object({
     required_error: "Stock is required",
   }),
 
+  storeId: z
+    .string()
+    .min(1, "Store ID is required"),
+
+  sellerId: z.string().optional(),
+
   categoryId: z.string(),
 
   tags: z.array(z.string()).optional(),
@@ -44,6 +50,10 @@ export const updateProductSchema = z.object({
   salePrice: z.number().optional(),
 
   stock: z.number().optional(),
+
+  storeId: z.string().optional(),
+
+  sellerId: z.string().optional(),
 
   categoryId: z.string().optional(),
 

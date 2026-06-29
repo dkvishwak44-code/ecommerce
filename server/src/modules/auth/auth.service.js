@@ -13,29 +13,28 @@ import { AppError } from "../../utils/AppError.js";
 import { logger } from "../../config/logger.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const MAX_LOGIN_ATTEMPTS        = 5;
-const LOCK_TIME_MS              = 15 * 60 * 1000;
-const OTP_MAX_ATTEMPTS          = 3;
-const OTP_EXPIRY_MS             = 10 * 60 * 1000;
-const RESET_TOKEN_EXPIRY_MS     = 60 * 60 * 1000;
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCK_TIME_MS = 15 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 3;
+const OTP_EXPIRY_MS = 10 * 60 * 1000;
+const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000;
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 
 class AuthService {
-
   constructor() {
     // ── Bind all public methods so `this` is never lost when destructured ──────
-    this.login                    = this.login.bind(this);
-    this.register                 = this.register.bind(this);
+    this.login = this.login.bind(this);
+    this.register = this.register.bind(this);
     this.changeFirstLoginPassword = this.changeFirstLoginPassword.bind(this);
-    this.changePassword           = this.changePassword.bind(this);
-    this.forgotPassword           = this.forgotPassword.bind(this);
-    this.resetPassword            = this.resetPassword.bind(this);
-    this.sendOtp                  = this.sendOtp.bind(this);
-    this.verifyOtp                = this.verifyOtp.bind(this);
-    this.refreshAccessToken       = this.refreshAccessToken.bind(this);
-    this.logout                   = this.logout.bind(this);
-    this.logoutAll                = this.logoutAll.bind(this);
-    this.getMe                    = this.getMe.bind(this);
+    this.changePassword = this.changePassword.bind(this);
+    this.forgotPassword = this.forgotPassword.bind(this);
+    this.resetPassword = this.resetPassword.bind(this);
+    this.sendOtp = this.sendOtp.bind(this);
+    this.verifyOtp = this.verifyOtp.bind(this);
+    this.refreshAccessToken = this.refreshAccessToken.bind(this);
+    this.logout = this.logout.bind(this);
+    this.logoutAll = this.logoutAll.bind(this);
+    this.getMe = this.getMe.bind(this);
   }
 
   // ─── Login ────────────────────────────────────────────────────────────────────
@@ -46,7 +45,10 @@ class AuthService {
     if (!user) throw new AppError("Invalid email or password", 401);
 
     if (!user.isActive) {
-      throw new AppError("Your account has been deactivated. Please contact support.", 403);
+      throw new AppError(
+        "Your account has been deactivated. Please contact support.",
+        403,
+      );
     }
 
     const isMatch = await comparePassword(password, user.password);
@@ -62,23 +64,41 @@ class AuthService {
       logger.info(`First login detected for user: ${user._id}`);
       const firstLoginToken = generateAccessToken(
         { id: user._id, scope: "change_password" },
-        "15m"
+        "15m",
       );
       emitAuthEvent("auth:first_login", { userId: user._id });
       return {
         isFirstLogin: true,
-        message: "You are using a system-generated password. Please change your password to continue.",
+        message:
+          "You are using a system-generated password. Please change your password to continue.",
         firstLoginToken,
       };
     }
 
     if (!user.isEmailVerified) {
-      throw new AppError("Please verify your email address before logging in.", 403);
+      throw new AppError(
+        "Please verify your email address before logging in.",
+        403,
+      );
     }
-    console.log("++++++++++++++++++++++++++++",user);
 
     const { accessToken, refreshToken } = await this._generateTokenPair(user);
     // console.log("access token :",accessToken,"refresh token : ",refreshToken);
+
+    const userWithPermissions = await authRepository.findUserPermissions(
+      user._id,
+    );
+    const permissions = userWithPermissions?.role?.permissions ?? [];
+
+    let storeData = null;
+
+    if (user.isSuperAdmin) {
+      // superadmin → sab stores
+      storeData = await authRepository.findAllStores();
+    } else if (user.store) {
+      // owner/seller → sirf apni store
+      storeData = await authRepository.findStoreById(user.store);
+    }
 
     emitAuthEvent("auth:login", { userId: user._id, ip: meta.ip });
     logger.info(`User logged in: ${user._id}`);
@@ -87,8 +107,10 @@ class AuthService {
       isFirstLogin: false,
       accessToken,
       refreshToken,
+      permissions,
       expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "1d",
       user: this._sanitizeUser(user),
+       store: storeData,
     };
   }
 
@@ -96,7 +118,8 @@ class AuthService {
 
   async register({ firstName, lastName, email, password, phone }) {
     const existing = await authRepository.findUserByEmail(email);
-    if (existing) throw new AppError("An account with this email already exists.", 409);
+    if (existing)
+      throw new AppError("An account with this email already exists.", 409);
 
     const hashedPassword = await hashPassword(password);
     const { default: User } = await import("../user/user.model.js");
@@ -122,17 +145,25 @@ class AuthService {
         to: user.email,
         subject: "Verify your email",
         template: "otp",
-        data: { name: firstName, otp, expiresIn: "10 minutes", purpose: "verification" },
+        data: {
+          name: firstName,
+          otp,
+          expiresIn: "10 minutes",
+          purpose: "verification",
+        },
       });
     } catch (err) {
-      logger.error(`Failed to send verification email to ${email}: ${err.message}`);
+      logger.error(
+        `Failed to send verification email to ${email}: ${err.message}`,
+      );
     }
 
     emitAuthEvent("auth:register", { userId: user._id });
     logger.info(`New customer registered: ${email}`);
 
     return {
-      message: "Registration successful. Please verify your email with the OTP sent.",
+      message:
+        "Registration successful. Please verify your email with the OTP sent.",
       userId: user._id,
       email: user.email,
     };
@@ -140,25 +171,40 @@ class AuthService {
 
   // ─── Change Password (First Login) ───────────────────────────────────────────
 
-  async changeFirstLoginPassword(userId, currentPassword, newPassword, meta = {}) {
+  async changeFirstLoginPassword(
+    userId,
+    currentPassword,
+    newPassword,
+    meta = {},
+  ) {
     const user = await authRepository.findUserByIdWithPassword(userId);
     if (!user) throw new AppError("User not found", 404);
 
     if (!user.isFirstLogin) {
-      throw new AppError("Password has already been changed. Please use the forgot password flow if needed.", 400);
+      throw new AppError(
+        "Password has already been changed. Please use the forgot password flow if needed.",
+        400,
+      );
     }
 
     const isMatch = await comparePassword(currentPassword, user.password);
     if (!isMatch) throw new AppError("Current password is incorrect", 401);
 
     const isSame = await comparePassword(newPassword, user.password);
-    if (isSame) throw new AppError("New password cannot be the same as the current password", 400);
+    if (isSame)
+      throw new AppError(
+        "New password cannot be the same as the current password",
+        400,
+      );
 
     const hashedPassword = await hashPassword(newPassword);
     await authRepository.updateUserPassword(user._id, hashedPassword);
     await authRepository.revokeAllUserTokens(user._id);
 
-    const { accessToken, refreshToken } = await this._generateTokenPair(user, meta);
+    const { accessToken, refreshToken } = await this._generateTokenPair(
+      user,
+      meta,
+    );
 
     emitAuthEvent("auth:password_changed_first_login", { userId: user._id });
     logger.info(`First-login password changed for user: ${user._id}`);
@@ -179,14 +225,21 @@ class AuthService {
     if (!user) throw new AppError("User not found", 404);
 
     if (user.isFirstLogin) {
-      throw new AppError("Please use the first-login password change endpoint", 400);
+      throw new AppError(
+        "Please use the first-login password change endpoint",
+        400,
+      );
     }
 
     const isMatch = await comparePassword(currentPassword, user.password);
     if (!isMatch) throw new AppError("Current password is incorrect", 401);
 
     const isSame = await comparePassword(newPassword, user.password);
-    if (isSame) throw new AppError("New password cannot be the same as the current password", 400);
+    if (isSame)
+      throw new AppError(
+        "New password cannot be the same as the current password",
+        400,
+      );
 
     const hashedPassword = await hashPassword(newPassword);
     await authRepository.updateUserPassword(user._id, hashedPassword);
@@ -203,12 +256,18 @@ class AuthService {
   async forgotPassword(email) {
     const user = await authRepository.findUserByEmail(email);
     if (!user) {
-      return { message: "If an account with that email exists, a reset link has been sent." };
+      return {
+        message:
+          "If an account with that email exists, a reset link has been sent.",
+      };
     }
 
-    const rawToken    = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
-    const expires     = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+    const expires = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
     await authRepository.setPasswordResetToken(user._id, hashedToken, expires);
 
@@ -222,25 +281,43 @@ class AuthService {
         data: { name: user.name, resetUrl, expiresIn: "1 hour" },
       });
     } catch (err) {
-      await authRepository.setPasswordResetToken(user._id, undefined, undefined);
+      await authRepository.setPasswordResetToken(
+        user._id,
+        undefined,
+        undefined,
+      );
       logger.error(`Failed to send reset email to ${email}: ${err.message}`);
-      throw new AppError("Failed to send reset email. Please try again later.", 500);
+      throw new AppError(
+        "Failed to send reset email. Please try again later.",
+        500,
+      );
     }
 
     logger.info(`Password reset token sent to: ${email}`);
-    return { message: "If an account with that email exists, a reset link has been sent." };
+    return {
+      message:
+        "If an account with that email exists, a reset link has been sent.",
+    };
   }
 
   // ─── Reset Password ───────────────────────────────────────────────────────────
 
   async resetPassword(rawToken, newPassword) {
-    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
 
     const user = await authRepository.findUserByResetToken(hashedToken);
-    if (!user) throw new AppError("Invalid or expired password reset token", 400);
+    if (!user)
+      throw new AppError("Invalid or expired password reset token", 400);
 
     const isSame = await comparePassword(newPassword, user.password);
-    if (isSame) throw new AppError("New password cannot be the same as the current password", 400);
+    if (isSame)
+      throw new AppError(
+        "New password cannot be the same as the current password",
+        400,
+      );
 
     const hashedPassword = await hashPassword(newPassword);
     await authRepository.updateUserPassword(user._id, hashedPassword);
@@ -266,7 +343,8 @@ class AuthService {
     try {
       await sendEmail({
         to: user.email,
-        subject: purpose === "verification" ? "Your Verification Code" : "Your OTP",
+        subject:
+          purpose === "verification" ? "Your Verification Code" : "Your OTP",
         template: "otp",
         data: { name: user.name, otp, expiresIn: "10 minutes", purpose },
       });
@@ -296,14 +374,20 @@ class AuthService {
 
     if (user.otpAttempts >= OTP_MAX_ATTEMPTS) {
       await authRepository.clearOtp(user._id);
-      throw new AppError("Too many OTP attempts. Please request a new one.", 429);
+      throw new AppError(
+        "Too many OTP attempts. Please request a new one.",
+        429,
+      );
     }
 
     const isValid = await comparePassword(otp, user.otp);
     if (!isValid) {
       await authRepository.incrementOtpAttempts(user._id);
       const remaining = OTP_MAX_ATTEMPTS - (user.otpAttempts + 1);
-      throw new AppError(`Invalid OTP. ${remaining} attempt(s) remaining.`, 400);
+      throw new AppError(
+        `Invalid OTP. ${remaining} attempt(s) remaining.`,
+        400,
+      );
     }
 
     await authRepository.clearOtp(user._id);
@@ -323,16 +407,25 @@ class AuthService {
       throw new AppError("Invalid or expired refresh token", 401);
     }
 
-    const tokenHash   = crypto.createHash("sha256").update(rawRefreshToken).digest("hex");
+    const tokenHash = crypto
+      .createHash("sha256")
+      .update(rawRefreshToken)
+      .digest("hex");
     const storedToken = await authRepository.findRefreshToken(tokenHash);
 
     if (!storedToken || storedToken.isRevoked) {
-      throw new AppError("Refresh token has been revoked. Please log in again.", 401);
+      throw new AppError(
+        "Refresh token has been revoked. Please log in again.",
+        401,
+      );
     }
 
     if (storedToken.expiresAt < new Date()) {
       await authRepository.revokeRefreshToken(tokenHash);
-      throw new AppError("Refresh token has expired. Please log in again.", 401);
+      throw new AppError(
+        "Refresh token has expired. Please log in again.",
+        401,
+      );
     }
 
     await authRepository.revokeRefreshToken(tokenHash);
@@ -342,7 +435,10 @@ class AuthService {
       throw new AppError("User not found or account deactivated", 401);
     }
 
-    const { accessToken, refreshToken } = await this._generateTokenPair(user, meta);
+    const { accessToken, refreshToken } = await this._generateTokenPair(
+      user,
+      meta,
+    );
 
     logger.info(`Token refreshed for user: ${user._id}`);
     return {
@@ -356,7 +452,10 @@ class AuthService {
 
   async logout(rawRefreshToken, userId) {
     if (rawRefreshToken) {
-      const tokenHash = crypto.createHash("sha256").update(rawRefreshToken).digest("hex");
+      const tokenHash = crypto
+        .createHash("sha256")
+        .update(rawRefreshToken)
+        .digest("hex");
       await authRepository.revokeRefreshToken(tokenHash);
     }
     emitAuthEvent("auth:logout", { userId });
@@ -394,21 +493,31 @@ class AuthService {
   }
 
   async _generateTokenPair(user, meta = {}) {
-    const payload          = { id: user._id, role: user.role,roleName:user.roleName };
-    const accessToken      = generateAccessToken(payload);
-    const rawRefreshToken  = generateRefreshToken(payload);
+    const payload = { id: user._id, roleName: user.roleName };
+
+    console.log(
+      "payload of user for toekn generation +++++++++++++++++++++++++++++: ",
+      payload,
+    );
+    const accessToken = generateAccessToken(payload);
+    const rawRefreshToken = generateRefreshToken(payload);
     const refreshTokenHash = crypto
       .createHash("sha256")
       .update(rawRefreshToken)
       .digest("hex");
     const refreshExpiry = new Date(
-      Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000
+      Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
     );
 
-    await authRepository.saveRefreshToken(user._id, refreshTokenHash, refreshExpiry, {
-      ipAddress: meta.ip,
-      userAgent: meta.userAgent,
-    });
+    await authRepository.saveRefreshToken(
+      user._id,
+      refreshTokenHash,
+      refreshExpiry,
+      {
+        ipAddress: meta.ip,
+        userAgent: meta.userAgent,
+      },
+    );
 
     return {
       accessToken,
@@ -443,15 +552,17 @@ const authService = new AuthService();
 export default authService;
 
 //  Named exports as bound wrapper functions — this context is preserved
-export const login                    = (...args) => authService.login(...args);
-export const register                 = (...args) => authService.register(...args);
-export const changeFirstLoginPassword = (...args) => authService.changeFirstLoginPassword(...args);
-export const changePassword           = (...args) => authService.changePassword(...args);
-export const forgotPassword           = (...args) => authService.forgotPassword(...args);
-export const resetPassword            = (...args) => authService.resetPassword(...args);
-export const sendOtp                  = (...args) => authService.sendOtp(...args);
-export const verifyOtp                = (...args) => authService.verifyOtp(...args);
-export const refreshAccessToken       = (...args) => authService.refreshAccessToken(...args);
-export const logout                   = (...args) => authService.logout(...args);
-export const logoutAll                = (...args) => authService.logoutAll(...args);
-export const getMe                    = (...args) => authService.getMe(...args);
+export const login = (...args) => authService.login(...args);
+export const register = (...args) => authService.register(...args);
+export const changeFirstLoginPassword = (...args) =>
+  authService.changeFirstLoginPassword(...args);
+export const changePassword = (...args) => authService.changePassword(...args);
+export const forgotPassword = (...args) => authService.forgotPassword(...args);
+export const resetPassword = (...args) => authService.resetPassword(...args);
+export const sendOtp = (...args) => authService.sendOtp(...args);
+export const verifyOtp = (...args) => authService.verifyOtp(...args);
+export const refreshAccessToken = (...args) =>
+  authService.refreshAccessToken(...args);
+export const logout = (...args) => authService.logout(...args);
+export const logoutAll = (...args) => authService.logoutAll(...args);
+export const getMe = (...args) => authService.getMe(...args);

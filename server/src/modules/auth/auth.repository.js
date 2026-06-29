@@ -1,5 +1,7 @@
 // const User = require("../user/user.model");
 // const Token = require("./auth.token.model");
+import Role from "../role/role.model.js";
+import Store from "../store/store.model.js";
 import User from "../user/user.model.js";
 // import {Token} from "../../middleware/auth.middleware.js";
 import Token from "./auth.token.model.js";
@@ -13,10 +15,41 @@ class AuthRepository {
       .lean();
   }
 
-  async findUserByEmailWithPassword(email) {
-    return User.findOne({ email: email.toLowerCase() }).select(
-      "+password +isFirstLogin +loginAttempts +lockUntil +isActive +isEmailVerified"
-    );
+
+async findUserByEmailWithPassword(email) {
+  return User.findOne({ email: email.toLowerCase() })
+    .select("+password +isFirstLogin +loginAttempts +lockUntil +isActive +isEmailVerified")
+    .populate({
+      path: "role",
+      select: "name", // ← sirf name, permissions nahi
+    });
+}
+
+
+async findUserPermissions(userId) {
+  return User.findById(userId)
+    .populate({
+      path: "role",
+      select: "name permissions",
+      populate: {
+        path: "permissions",
+        select: "-_id key action",
+      },
+    })
+    .lean();
+}
+
+
+async findStoreById(storeId) {
+  return Store.findById(storeId).lean();
+}
+
+async findAllStores() {
+  return Store.find({ isDeleted: false, isActive: true }).lean();
+}
+
+  async findRoleById(roleId) {
+    return Role.findById(roleId).lean();
   }
 
   async findUserById(id, selectFields = "") {

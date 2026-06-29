@@ -111,11 +111,13 @@ const authenticate = asyncHandler(async (req, res, next) => {
       })
       .lean();
 
+      console.log("authUser------------------------------------------------", authUser);
+
     if (!authUser) throw new AppError("User account not found.", 401);
   }
 
   // ── Common checks ─────────────────────────────────────────────────────────
-  if (!authUser.isActive) {
+  if (!authUser.status === "active") {
     throw new AppError("Your account has been deactivated. Please contact support.", 403);
   }
 

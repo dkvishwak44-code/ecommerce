@@ -1,5 +1,3 @@
-"use strict";
-
 // const express = require("express");
 import express from "express";
 // const helmet = require("helmet");
@@ -34,6 +32,7 @@ import clientRoutes from "./api/client/routes.js";
 // ── Route barrels ─────────────────────────────────────────────────────────────
 // const {adminRoutes} = require("./src/api/admin/routes.js");
 import adminRoutes from "./api/admin/routes.js"
+import { env } from "./config/env.js";
 
 // const clientRoutes = require("./src/api/client/routes");
 // import{ clientRoutes} from "./api/client/routes.js"
@@ -59,7 +58,7 @@ app.use(
 // ══════════════════════════════════════════════════════════════════════════════
 // 3. CORS
 // ══════════════════════════════════════════════════════════════════════════════
-const allowedOrigins = (process.env.CORS_ORIGINS || "")
+const allowedOrigins = (env.CLIENT_URL || "")
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);

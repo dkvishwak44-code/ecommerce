@@ -57,13 +57,25 @@ const productSchema = new mongoose.Schema(
       public_id: String,
     },
 
-    categoryId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
-      required: true,
+    // categoryId: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Category",
+    //   required: true,
+    // },
+
+    // sellerId: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "User",
+    //   required: true,
+    //   index: true,
+    // },
+    category:{
+      type:[String],
+      required:true,
+      trim:true,
     },
 
-    sellerId: {
+    createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -140,6 +152,8 @@ const productSchema = new mongoose.Schema(
 productSchema.index({ name: "text", description: "text" });
 
 productSchema.index({ sellerId: 1 });
+
+productSchema.index({ createdBy: 1 });
 
 productSchema.index({ storeId: 1 });
 

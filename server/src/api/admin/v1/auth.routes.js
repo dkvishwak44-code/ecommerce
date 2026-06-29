@@ -16,6 +16,7 @@ import {
   getMe,
 }                    from "../../../modules/auth/auth.controller.js";
 import {
+  authenticate,
   protect,
   protectFirstLogin,
 }                    from "../../../middleware/auth.middleware.js";
