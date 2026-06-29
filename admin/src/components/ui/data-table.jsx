@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 
 import {
   Table,
@@ -13,19 +13,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from "@/components/ui/skeleton";
 
-export function DataTable({ columns, data, isLoading, renderToolbar }) {
+export function DataTable({ columns, data=[], isLoading, renderToolbar }) {
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-  })
+  });
 
   // Calculate column widths based on number of columns
-  const columnWidths = columns.map(() => `${100 / columns.length}%`)
+  const columnWidths = columns.map(() => `${100 / columns.length}%`);
 
   if (isLoading) {
     return (
@@ -55,16 +55,15 @@ export function DataTable({ columns, data, isLoading, renderToolbar }) {
           </Table>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="rounded-md border">
-
       {/* Fixed Header */}
       <div className="w-full border-b bg-card">
-       {renderToolbar && renderToolbar(table)}
-        <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+        {renderToolbar && renderToolbar(table)}
+        <Table style={{ tableLayout: "fixed", width: "100%" }}>
           <colgroup>
             {columnWidths.map((width, index) => (
               <col key={index} style={{ width }} />
@@ -72,12 +71,12 @@ export function DataTable({ columns, data, isLoading, renderToolbar }) {
           </colgroup>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} >
+              <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
                     {flexRender(
                       header.column.columnDef.header,
-                      header.getContext()
+                      header.getContext(),
                     )}
                   </TableHead>
                 ))}
@@ -86,31 +85,44 @@ export function DataTable({ columns, data, isLoading, renderToolbar }) {
           </TableHeader>
         </Table>
       </div>
-      
+
+      {/* Scrollable Body */}
       {/* Scrollable Body */}
       <div className="w-full min-w-[400px] max-h-[400px] overflow-auto">
-        <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+        <Table style={{ tableLayout: "fixed", width: "100%" }}>
           <colgroup>
             {columnWidths.map((width, index) => (
               <col key={index} style={{ width }} />
             ))}
           </colgroup>
           <TableBody>
-            {table?.getRowModel().rows?.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="py-2">
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
-                  </TableCell>
-                ))}
+            {table?.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="py-2">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              // ← Empty state
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-40 text-center text-muted-foreground"
+                >
+                  No results found.
+                </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>
     </div>
-  )
+  );
 }

@@ -1,111 +1,182 @@
 'use client';
-import { useState } from 'react';
+
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { useEffect } from 'react';
 
-// Quick-login demo accounts
-const DEMO_ACCOUNTS = [
-  { label: 'Staff',    email: 'staff@test.com',   role: 'staff'    },
-  { label: 'Seller',      email: 'seller@test.com',     role: 'seller'      },
-  { label: 'Moderator',   email: 'moderator@test.com',  role: 'moderator'   },
-  { label: 'Admin',       email: 'admin@test.com',      role: 'admin'       },
-  { label: 'Super Admin', email: 'superadmin@test.com', role: 'super_admin' },
-];
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+import { z } from 'zod';
+
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Invalid email address'),
+
+  password: z
+    .string()
+    .min(6, 'Password must be at least 6 characters'),
+});
 
 export default function LoginPage() {
-  const { login, isLoading, error, isLoggedIn } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
 
-  // Redirect if already logged in
+  const {
+    login,
+    isLoading,
+    error,
+    isLoggedIn,
+  } = useAuth();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
   useEffect(() => {
     if (isLoggedIn) {
       router.push('/dashboard');
     }
   }, [isLoggedIn, router]);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    await login(email, password);
-    router.push('/dashboard');
-  }
+  const onSubmit = async (data) => {
+    const result = await login(data);
 
-  async function handleQuickLogin(demoEmail) {
-    await login(demoEmail, 'password');
-    router.push('/dashboard');
-  }
+    if (!result.error) {
+      router.push('/dashboard');
+    }
+  };
+
+  const handleQuickLogin = async (email) => {
+    setValue('email', email);
+    setValue('password', 'password123');
+
+    const result = await login({
+      email,
+      password: 'password123',
+    });
+
+    if (!result.error) {
+      router.push('/dashboard');
+    }
+  };
+
+  const DEMO_ACCOUNTS = [
+    {
+      label: 'Staff',
+      email: 'staff@test.com',
+    },
+    {
+      label: 'Seller',
+      email: 'seller@test.com',
+    },
+    {
+      label: 'Moderator',
+      email: 'moderator@test.com',
+    },
+    {
+      label: 'Admin',
+      email: 'admin@test.com',
+    },
+    {
+      label: 'Super Admin',
+      email: 'superadmin@test.com',
+    },
+  ];
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa' }}>
-      <div style={{ width: 420, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: '2rem' }}>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="w-full max-w-md bg-white border rounded-xl p-8 shadow-sm">
 
-        <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 4 }}>Sign in</h1>
-        <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 24 }}>RBAC E-commerce Demo</p>
+        <h1 className="text-2xl font-semibold">
+          Sign In
+        </h1>
 
-        {/* Quick login buttons */}
-        <p style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quick login as:</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-          {DEMO_ACCOUNTS.map(acc => (
+        <p className="text-sm text-gray-500 mt-1 mb-6">
+          RBAC E-commerce Demo
+        </p>
+
+        <div className="flex flex-wrap gap-2 mb-6">
+          {DEMO_ACCOUNTS.map((account) => (
             <button
-              key={acc.role}
-              onClick={() => handleQuickLogin(acc.email)}
-              style={{
-                padding: '5px 12px', fontSize: 13, borderRadius: 20,
-                border: '1px solid #d1d5db', background: '#f9fafb',
-                cursor: 'pointer', color: '#374151',
-              }}
+              key={account.email}
+              type="button"
+              onClick={() =>
+                handleQuickLogin(account.email)
+              }
+              className="px-3 py-1 text-sm border rounded-full hover:bg-gray-100"
             >
-              {acc.label}
+              {account.label}
             </button>
           ))}
         </div>
 
-        <div style={{ borderTop: '1px solid #e5e7eb', margin: '20px 0', textAlign: 'center', position: 'relative' }}>
-          <span style={{ background: '#fff', padding: '0 12px', fontSize: 12, color: '#9ca3af', position: 'relative', zIndex: 1 }}>or enter manually</span>
-        </div>
-
-        {/* Manual login form */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-4"
+        >
           <div>
-            <label style={{ fontSize: 13, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 4 }}>Email</label>
+            <label className="block mb-1 text-sm font-medium">
+              Email
+            </label>
+
             <input
               type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="customer@test.com"
-              required
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none' }}
+              {...register('email')}
+              className="w-full border rounded-lg px-3 py-2"
+              placeholder="admin@test.com"
             />
+
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.email.message}
+              </p>
+            )}
           </div>
+
           <div>
-            <label style={{ fontSize: 13, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 4 }}>Password</label>
+            <label className="block mb-1 text-sm font-medium">
+              Password
+            </label>
+
             <input
               type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="any password works in demo"
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none' }}
+              {...register('password')}
+              className="w-full border rounded-lg px-3 py-2"
+              placeholder="******"
             />
+
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
           {error && (
-            <p style={{ fontSize: 13, color: '#ef4444', background: '#fef2f2', padding: '8px 12px', borderRadius: 8 }}>
+            <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 text-sm">
               {error}
-            </p>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={isLoading}
-            style={{
-              padding: '10px', background: '#2563eb', color: '#fff', border: 'none',
-              borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer',
-              opacity: isLoading ? 0.6 : 1,
-            }}
+            className="w-full bg-blue-600 text-white rounded-lg py-2 font-medium disabled:opacity-50"
           >
-            {isLoading ? 'Signing in...' : 'Sign in'}
+            {isLoading
+              ? 'Signing In...'
+              : 'Sign In'}
           </button>
         </form>
       </div>

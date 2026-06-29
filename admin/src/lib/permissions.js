@@ -6,7 +6,7 @@
 export const PERMISSIONS = {
 
   // ── Products ──────────────────────────────────────
-  PRODUCT_VIEW:    'product.view',
+  PRODUCT_READ:    'product.read',
   PRODUCT_CREATE:  'product.create',
   PRODUCT_EDIT:    'product.edit',
   PRODUCT_DELETE:  'product.delete',
@@ -125,7 +125,7 @@ export const ROLES = {
     ],
   },
 
-  super_admin: {
+  superadmin: {
     label: 'Super Admin',
     description: 'Unrestricted access to everything',
     permissions: Object.values(PERMISSIONS), // ALL permissions
@@ -139,6 +139,15 @@ export const ROLES = {
  */
 export function getPermissionsForRole(role) {
   return ROLES[role]?.permissions ?? [];
+}
+
+
+export function getFilteredPermissions(permission) {
+
+  const filteredPermissions = permission.map((perm) =>perm.key);
+
+  return filteredPermissions;
+
 }
 
 /**

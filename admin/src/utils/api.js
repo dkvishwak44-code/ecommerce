@@ -1,14 +1,15 @@
 // src/utils/api.js
 
 import axios from "axios";
+import { loadAuthFromStorage } from "./auth-storage";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/admin/v1";
 
 //  token helper
 const getToken = () => {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
+  return loadAuthFromStorage()?.accessToken || null;
 };
 
 const removeToken = () => {
@@ -16,7 +17,7 @@ const removeToken = () => {
   localStorage.removeItem("token");
 };
 
-// 🚀 Axios instance
+//  Axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
@@ -56,11 +57,10 @@ api.interceptors.response.use(
     }
 
     return Promise.reject({
-      message:
-        error?.response?.data?.message || error.message,
+      message: error?.response?.data?.message || error.message,
       status,
     });
-  }
+  },
 );
 
 export default api;

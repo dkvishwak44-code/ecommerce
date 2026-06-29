@@ -7,7 +7,9 @@ export const columns = [
    {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => <ProductActions product={row.original} />,
+    cell: ({ row }) => {
+      return <ProductActions product={row.original} />;
+    },
   },
   {
     accessorKey: "name",

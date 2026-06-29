@@ -14,14 +14,16 @@ import { PERMISSIONS } from "@/lib/permissions";
 export default function ProductActions({ product }) {
    const router = useRouter();
 
+   console.log("product ",product)
+
   const handleEdit = () => {
     // Navigate to edit page or open modal
-   router.push(`/products/${product.id}/edit`);
+   router.push(`/products/${product._id}/edit`);
   }
 
   const handleView = () => {
     // Navigate to view page
-    router.push(`/products/${product.id}`);
+    router.push(`/products/${product._id}`);
   }
 
   return (
@@ -34,7 +36,7 @@ export default function ProductActions({ product }) {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end">
-        <Can permission={PERMISSIONS.PRODUCT_VIEW}>
+        <Can permission={PERMISSIONS.PRODUCT_READ}>
           <DropdownMenuItem className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-600">
             <Edit className="w-4 h-4 mr-2 " />
           < Button onClick={handleView} className="cursor-pointer ">View</Button>

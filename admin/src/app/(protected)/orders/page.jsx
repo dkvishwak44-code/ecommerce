@@ -11,4 +11,4 @@ const Orders = () => {
   )
 }
 
-export default withPermission(Orders, { anyOf: ['order.view_own', 'order.view_all'] });
+export default withPermission(Orders, { anyOf: ['order.read', 'order.read_all'] });

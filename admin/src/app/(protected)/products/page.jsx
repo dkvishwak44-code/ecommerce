@@ -9,4 +9,4 @@ const products = () => {
   )
 }
 
-export default withPermission(products, { permission: 'product.view' });
+export default withPermission(products, { permission: 'product.read' });

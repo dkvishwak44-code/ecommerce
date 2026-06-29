@@ -1,10 +1,10 @@
 'use client';
+
 import { useDispatch, useSelector } from 'react-redux';
+
 import {
-  loginStart,
-  loginSuccess,
-  loginFailure,
-  logout,
+  loginUser,
+  logoutUser,
   grantPermission,
   revokePermission,
   selectUser,
@@ -14,116 +14,92 @@ import {
   selectIsLoading,
   selectError,
 } from '@/store/slices/authSlice';
-import { checkPermission, checkAllPermissions, checkAnyPermission } from '@/lib/permissions';
 
+import {
+  checkPermission,
+  checkAllPermissions,
+  checkAnyPermission,
+} from '@/lib/permissions';
 
-/**
- * useAuth — primary hook for auth + permission checks
- *
- * Usage:
- *   const { user, can, login, logout } = useAuth();
- *   if (can('product.delete')) { ... }
- */
 export function useAuth() {
   const dispatch = useDispatch();
 
-  const user        = useSelector(selectUser);
-  const role        = useSelector(selectRole);
+  const user = useSelector(selectUser);
+  const role = useSelector(selectRole);
   const permissions = useSelector(selectPermissions);
-  const isLoggedIn  = useSelector(selectIsLoggedIn);
-  const isLoading   = useSelector(selectIsLoading);
-  const error       = useSelector(selectError);
+  const isLoggedIn = useSelector(selectIsLoggedIn);
+  const isLoading = useSelector(selectIsLoading);
+  const error = useSelector(selectError);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // Login
+  const login = async (credentials) => {
+    return dispatch(loginUser(credentials));
+  };
 
-  async function login(email, _password) {
-    dispatch(loginStart());
-    // Simulate async API call (replace with real fetch in production)
-    await new Promise(r => setTimeout(r, 400));
-    dispatch(loginSuccess({ email }));
-  }
+  // Logout
+  const logout = async () => {
+    return dispatch(logoutUser());
+  };
 
-  function logoutUser() {
-    dispatch(logout());
-  }
-
-  // ── Permission checks ─────────────────────────────────────────────────────
-
-  /** Single permission check — 'product.view' */
-  function can(permission) {
+  // Permission checks
+  const can = (permission) => {
     return checkPermission(permissions, permission);
-  }
+  };
 
-  /** ALL permissions must be present */
-  function canAll(...perms) {
+  const canAll = (...perms) => {
     return checkAllPermissions(permissions, perms);
-  }
+  };
 
-  /** ANY permission from the list */
-  function canAny(...perms) {
+  const canAny = (...perms) => {
     return checkAnyPermission(permissions, perms);
-  }
+  };
 
-  /** Role check */
-  function hasRole(...roles) {
-    return roles.includes(role);
-  }
-
-  /** Cannot do — opposite of can */
-  function cannot(permission) {
+  const cannot = (permission) => {
     return !can(permission);
-  }
+  };
 
-  // ── Admin helpers ─────────────────────────────────────────────────────────
-  function grant(permission) {
+  const hasRole = (...roles) => {
+    return roles.includes(role);
+  };
+
+  // Admin permission management
+  const grant = (permission) => {
     dispatch(grantPermission(permission));
-  }
+  };
 
-  function revoke(permission) {
+  const revoke = (permission) => {
     dispatch(revokePermission(permission));
-  }
+  };
 
   return {
-    // State
     user,
     role,
     permissions,
     isLoggedIn,
     isLoading,
     error,
-    // Actions
+
     login,
-    logout: logoutUser,
-    // Permission helpers
+    logout,
+
     can,
     canAll,
     canAny,
     cannot,
     hasRole,
-    // Admin
+
     grant,
     revoke,
   };
 }
 
-/**
- * usePermission — lightweight hook for a single permission check
- * Avoids subscribing to the full auth state when you only need one check
- *
- * Usage:
- *   const canDelete = usePermission('product.delete');
- */
+// Single Permission Hook
 export function usePermission(permission) {
   const permissions = useSelector(selectPermissions);
   return checkPermission(permissions, permission);
 }
 
-/**
- * useRole — returns true if user has one of the given roles
- *
- * Usage:
- *   const isAdmin = useRole('admin', 'super_admin');
- */
+// Role Hook
 export function useRole(...roles) {
   const role = useSelector(selectRole);
   return roles.includes(role);

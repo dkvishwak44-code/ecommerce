@@ -44,14 +44,14 @@ const menu = [
     label: "Orders",
     href: "/orders",
     icon: ShoppingCart,
-    anyOf: ["order.view_own", "order.view_all"],
+    permission:"order.read",
   },
   {
     name: "products",
     label: "Products",
     href: "/products",
     icon: Package,
-    permission: "product.view",
+    permission: "product.read",
   },
   {
     name: "analytics",
