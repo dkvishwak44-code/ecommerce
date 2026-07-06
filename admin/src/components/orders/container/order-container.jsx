@@ -1,7 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { OrderColumns } from "../components/orders/order-columns";
-import { DataTable } from "@/components/ui/data-table";
 import OrderHeader from "../components/orders/order-header";
 import OrderStats from "../components/orders/order-stats";
 import Orders from "@/app/(protected)/orders/page";

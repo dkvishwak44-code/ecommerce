@@ -76,7 +76,7 @@ export default function ProductDetailsPage() {
   const { id } = useParams();
   const router  = useRouter();
 
-  const { data: product, isLoading, isError } = useProducta(id);
+  const { data: product, isLoading, isError } = useProduct(id);
 
   if (isLoading) return <ProductDetailsSkeleton />;
   if (isError || !product) return <ProductNotFound />;

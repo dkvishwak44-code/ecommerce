@@ -4,7 +4,6 @@ import { useState } from "react";
 import { columns } from "../components/columns";
 import ProductsToolbar from "../components/toolbar";
 import ProductDialog from "../components/add-product-dialog";
-import { DataTable } from "@/components/ui/data-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ProductHeader from "../components/product-header";
 import RefreshButton from "@/components/ui/refresh-button";
@@ -30,7 +29,7 @@ import { useProducts } from "../hook/useProducts";
   export default function ProductsContainer() {
     const [open, setOpen] = useState(false);
     
-    const {data } = useProducts({ page: 1, limit: 10, status: "active" });
+    const { data = [], isLoading } = useProducts({ page: 1, limit: 10, status: "active" });
     console.log("items ",data)
   return (
     <div className="space-y-2 rounded">
@@ -43,6 +42,7 @@ import { useProducts } from "../hook/useProducts";
         <ProductList
           columns={columns}
           data={data}
+          isLoading={isLoading}
           renderToolbar={(table) => (
             <ProductsToolbar table={table} onAdd={() => setOpen(true)} />
           )}

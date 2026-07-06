@@ -172,6 +172,8 @@ const authSlice = createSlice({
           isEmailVerified:  user.isEmailVerified,
           isFirstLogin:     user.isFirstLogin,
           lastLoginAt:      user.lastLoginAt,
+          createdAt:        user.createdAt,
+          updatedAt:        user.updatedAt,
           bio:              user.bio,
           socialLinks:      user.socialLinks,
           addresses:        user.addresses,
@@ -277,6 +279,7 @@ export const {
   restoreSession,
   updateUser,
   clearError,
+  
 } = authSlice.actions;
 
 export default authSlice.reducer;

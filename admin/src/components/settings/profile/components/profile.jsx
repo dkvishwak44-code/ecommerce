@@ -10,8 +10,13 @@ import { Label } from "@/components/ui/label";
 import ChangePasswordCard from "./change-password-card";
 import AccountOverview from "./account-overview";
 import ProfileInfo from "./profile-info";
+import { useSelector } from "react-redux";
 
 export default function ProfilePage() {
+
+  const user = useSelector((state) => state.auth.user);
+  console.log("user ", user);
+
   return (
     <div className="space-y-2 ">
         <h1 className="font-semibold">My Profiles</h1>
@@ -29,7 +34,7 @@ export default function ProfilePage() {
             <CardContent className="space-y-6">
 
               {/* Profile Top */}
-             <ProfileInfo/>
+             <ProfileInfo user={user}/>
 
             </CardContent>
           </Card>
@@ -39,7 +44,7 @@ export default function ProfilePage() {
         <div className="space-y-2">
 
           {/* ACCOUNT OVERVIEW */}
-          <AccountOverview/>
+          <AccountOverview user={user} />
           {/* CHANGE PASSWORD */}
           <ChangePasswordCard/>
 

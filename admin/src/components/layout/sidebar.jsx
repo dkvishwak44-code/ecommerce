@@ -31,6 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import Can from "@/components/rbac/Can";
+import { PERMISSIONS } from "@/lib/permissions";
 
 const menu = [
   {
@@ -90,14 +91,14 @@ const menu = [
         label: "Users",
         href: "/settings/users",
         icon: Users,
-        permission: "user.view",
+        permission: PERMISSIONS.USER_READ,
       },
       {
         name: "roles",
         label: "Roles",
         href: "/settings/roles",
         icon: ShieldCheck,
-        permission: "role.view",
+        permission: PERMISSIONS.ROLE_READ,
       },
     ],
   },

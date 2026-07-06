@@ -27,4 +27,4 @@ const UsersList = () => {
   );
 };
 
-export default withPermission(UsersList, { permission: "user.view" });
+export default UsersList;

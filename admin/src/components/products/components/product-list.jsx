@@ -3,7 +3,7 @@ import { DataTable } from "@/components/ui/data-table";
 import RefreshButton from "@/components/ui/refresh-button";
 import React from "react";
 
-function ProductList({ columns, data,renderToolbar }) {
+function ProductList({ columns, data, renderToolbar, isLoading }) {
 
   return (
   <Card>
@@ -14,7 +14,7 @@ function ProductList({ columns, data,renderToolbar }) {
       </CardTitle>
     </CardHeader>
     <CardContent>
-    <DataTable columns={columns} data={data} toolbar={renderToolbar} />
+    <DataTable columns={columns} data={data} renderToolbar={renderToolbar} isLoading={isLoading} />
 
       {/* <ProductDialog open={open} setOpen={setOpen} /> */}
     </CardContent>

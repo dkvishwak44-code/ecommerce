@@ -4,72 +4,51 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import RoleTable from "../components/role-table";
 import { useRouter } from "next/navigation";
+import { useRoles } from "../hook/useRole";
 
 // import RoleTable from "./components/role-table";
 // import RoleDialog from "./components/role-dialog";
 
 export default function RoleContainer() {
-    const router = useRouter();
-  const [roles, setRoles] = useState([
-    {
-      id: 1,
-      name: "Super Admin",
-      permissions: {
-        orders: ["view", "create", "update", "delete"],
-        products: ["view", "create", "update", "delete"],
-        users: ["view", "create", "update", "delete"],
-      },
-    },
-    {
-      id: 2,
-      name: "Seller",
-      permissions: {
-        orders: ["view"],
-        products: ["view", "create"],
-      },
-    },
-  ]);
-
-  const [open, setOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(null);
+  const router = useRouter();
+  const { data: { roles: roles } = {}, isLoading } = useRoles();
+  console.log("roles :", roles);
 
   //  Create or Update Role
-  const handleSubmit = (data) => {
-    if (selectedRole) {
-      // Edit
-      const updated = roles.map((role) =>
-        role.id === selectedRole.id ? { ...role, ...data } : role
-      );
-      setRoles(updated);
-    } else {
-      // Create
-      const newRole = {
-        id: Date.now(),
-        ...data,
-      };
-      setRoles((prev) => [...prev, newRole]);
-    }
+  // const handleSubmit = (data) => {
+  //   if (selectedRole) {
+  //     // Edit
+  //     const updated = roles.map((role) =>
+  //       role.id === selectedRole.id ? { ...role, ...data } : role
+  //     );
+  //     setRoles(updated);
+  //   } else {
+  //     // Create
+  //     const newRole = {
+  //       id: Date.now(),
+  //       ...data,
+  //     };
+  //     setRoles((prev) => [...prev, newRole]);
+  //   }
 
-    setOpen(false);
-    setSelectedRole(null);
-  };
+  //   setOpen(false);
+  //   setSelectedRole(null);
+  // };
 
-  //  Edit Click
-  const handleEdit = (role) => {
-    setSelectedRole(role);
-    setOpen(true);
-  };
+  // //  Edit Click
+  // const handleEdit = (role) => {
+  //   setSelectedRole(role);
+  //   setOpen(true);
+  // };
 
-  //  Delete Role
-  const handleDelete = (id) => {
-    const filtered = roles.filter((role) => role.id !== id);
-    setRoles(filtered);
-  };
+  // //  Delete Role
+  // const handleDelete = (id) => {
+  //   const filtered = roles.filter((role) => role.id !== id);
+  //   setRoles(filtered);
+  // };
 
   //  Open Create Dialog
   const handleCreate = () => {
-    // setSelectedRole(null);
-    // setOpen(true);
     router.push("/settings/roles/create");
   };
 
@@ -87,12 +66,10 @@ export default function RoleContainer() {
       {/* Table */}
       <RoleTable
         roles={roles}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        isLoading={isLoading}
+        // onEdit={handleEdit}
+        // onDelete={handleDelete}
       />
-
-
-     
     </div>
   );
 }

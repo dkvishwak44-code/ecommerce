@@ -4,49 +4,48 @@
  * Single source of truth — import this everywhere
  */
 export const PERMISSIONS = {
-
   // ── Products ──────────────────────────────────────
-  PRODUCT_READ:    'product.read',
-  PRODUCT_CREATE:  'product.create',
-  PRODUCT_EDIT:    'product.edit',
-  PRODUCT_DELETE:  'product.delete',
+  PRODUCT_READ: "product.read",
+  PRODUCT_CREATE: "product.create",
+  PRODUCT_UPDATE: "product.update",
+  PRODUCT_DELETE: "product.delete",
   // PRODUCT_PUBLISH: 'product.publish',
 
   // ── Orders ────────────────────────────────────────
-  ORDER_VIEW_OWN:  'order.view_own',
-  ORDER_VIEW_ALL:  'order.view_all',
-  ORDER_MANAGE:    'order.manage',
-  ORDER_REFUND:    'order.refund',
-  ORDER_CANCEL:    'order.cancel',
+  ORDER_VIEW_OWN: "order.view_own",
+  ORDER_VIEW_ALL: "order.view_all",
+  ORDER_MANAGE: "order.manage",
+  ORDER_REFUND: "order.refund",
+  ORDER_CANCEL: "order.cancel",
 
   // ── Users ─────────────────────────────────────────
-  USER_VIEW:       'user.view',
-  USER_CREATE:     'user.create',
-  USER_EDIT:       'user.edit',
-  USER_DELETE:     'user.delete',
+  USER_READ: "user.read",
+  USER_CREATE: "user.create",
+  USER_EDIT: "user.edit",
+  USER_DELETE: "user.delete",
   // USER_BAN:        'user.ban',
 
   // ── Reviews ───────────────────────────────────────
-  REVIEW_VIEW:     'review.view',
-  REVIEW_CREATE:   'review.create',
-  REVIEW_DELETE:   'review.delete',
+  REVIEW_VIEW: "review.view",
+  REVIEW_CREATE: "review.create",
+  REVIEW_DELETE: "review.delete",
   // REVIEW_MODERATE: 'review.moderate',
 
   // ── Categories ────────────────────────────────────
-  CATEGORY_VIEW:   'category.view',
-  CATEGORY_MANAGE: 'category.manage',
+  CATEGORY_VIEW: "category.view",
+  CATEGORY_MANAGE: "category.manage",
 
   // ── Analytics & Finance ───────────────────────────
-  ANALYTICS_VIEW:  'analytics.view',
-  REVENUE_VIEW:    'revenue.view',
+  ANALYTICS_VIEW: "analytics.view",
+  REVENUE_VIEW: "revenue.view",
 
   // ── Settings ──────────────────────────────────────
-  SETTINGS_VIEW:   'settings.view',
-  SETTINGS_MANAGE: 'settings.manage',
+  SETTINGS_VIEW: "settings.view",
+  SETTINGS_MANAGE: "settings.manage",
 
   // ── Roles & Permissions ───────────────────────────
-  ROLE_VIEW:       'role.view',
-  ROLE_MANAGE:     'role.manage',
+  ROLE_READ: "role.read",
+  ROLE_MANAGE: "role.manage",
 };
 
 /**
@@ -54,8 +53,8 @@ export const PERMISSIONS = {
  */
 export const ROLES = {
   staff: {
-    label: 'Staff',
-    description: 'Staff',
+    label: "Staff",
+    description: "Staff",
     permissions: [
       PERMISSIONS.PRODUCT_VIEW,
       PERMISSIONS.ORDER_VIEW_OWN,
@@ -66,8 +65,8 @@ export const ROLES = {
     ],
   },
   seller: {
-    label: 'Seller',
-    description: 'Can list and manage their own products',
+    label: "Seller",
+    description: "Can list and manage their own products",
     permissions: [
       PERMISSIONS.PRODUCT_VIEW,
       PERMISSIONS.PRODUCT_CREATE,
@@ -82,8 +81,8 @@ export const ROLES = {
   },
 
   moderator: {
-    label: 'Moderator',
-    description: 'Manages reviews and user reports',
+    label: "Moderator",
+    description: "Manages reviews and user reports",
     permissions: [
       PERMISSIONS.PRODUCT_VIEW,
       PERMISSIONS.ORDER_VIEW_OWN,
@@ -97,8 +96,8 @@ export const ROLES = {
   },
 
   admin: {
-    label: 'Admin',
-    description: 'Full store management access',
+    label: "Admin",
+    description: "Full store management access",
     permissions: [
       PERMISSIONS.PRODUCT_VIEW,
       PERMISSIONS.PRODUCT_CREATE,
@@ -126,8 +125,8 @@ export const ROLES = {
   },
 
   superadmin: {
-    label: 'Super Admin',
-    description: 'Unrestricted access to everything',
+    label: "Super Admin",
+    description: "Unrestricted access to everything",
     permissions: Object.values(PERMISSIONS), // ALL permissions
   },
 };
@@ -141,13 +140,10 @@ export function getPermissionsForRole(role) {
   return ROLES[role]?.permissions ?? [];
 }
 
-
 export function getFilteredPermissions(permission) {
-
-  const filteredPermissions = permission.map((perm) =>perm.key);
+  const filteredPermissions = permission.map((perm) => perm.key);
 
   return filteredPermissions;
-
 }
 
 /**
@@ -164,7 +160,7 @@ export function checkPermission(userPermissions, required) {
   if (userPermissions.includes(required)) return true;
 
   // Wildcard match: e.g. "product.*" grants all product.X
-  const [resource] = required.split('.');
+  const [resource] = required.split(".");
   if (userPermissions.includes(`${resource}.*`)) return true;
 
   return false;
@@ -174,12 +170,12 @@ export function checkPermission(userPermissions, required) {
  * Helper — check ALL permissions are present
  */
 export function checkAllPermissions(userPermissions, required = []) {
-  return required.every(p => checkPermission(userPermissions, p));
+  return required.every((p) => checkPermission(userPermissions, p));
 }
 
 /**
  * Helper — check ANY permission is present
  */
 export function checkAnyPermission(userPermissions, required = []) {
-  return required.some(p => checkPermission(userPermissions, p));
+  return required.some((p) => checkPermission(userPermissions, p));
 }

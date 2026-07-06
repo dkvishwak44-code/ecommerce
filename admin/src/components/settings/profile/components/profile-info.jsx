@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
-export default function ProfileInfo() {
+export default function ProfileInfo({user}) {
   const [image, setImage] = useState(
     "https://ui-avatars.com/api/?name=Dinesh+Vish&background=0D8ABC&color=fff",
   );
@@ -47,6 +47,7 @@ export default function ProfileInfo() {
             type="file"
             accept="image/*"
             className="hidden"
+            value={user?.profileImage || ""}
             onChange={handleImageChange}
           />
         </div>
@@ -62,28 +63,28 @@ export default function ProfileInfo() {
           <Label htmlFor="full-name" className="text-xs">
             Full Name
           </Label>
-          <Input id="full-name" placeholder="Full Name" />
+          <Input id="full-name" placeholder="Full Name" value={user?.name || ""} />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="email" className="text-xs">
             Email Address
           </Label>
-          <Input id="email" placeholder="Email Address" />
+          <Input id="email" placeholder="Email Address" value={user?.email || ""} />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="phone" className="text-xs">
             Phone Number
           </Label>
-          <Input id="phone" placeholder="Phone Number" />
+          <Input id="phone" placeholder="Phone Number" value={user?.phone || ""} />
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="role" className="text-xs">
             Role
           </Label>
-          <Input id="role" placeholder="Admin / Staff" />
+          <Input id="role" placeholder="Admin / Staff" value={user?.role?.name || ""} disabled />
         </div>
 
         <div className="space-y-1">

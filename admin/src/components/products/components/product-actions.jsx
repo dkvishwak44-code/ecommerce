@@ -43,7 +43,7 @@ export default function ProductActions({ product }) {
           </DropdownMenuItem>
         </Can>
 
-        <Can permission={PERMISSIONS.PRODUCT_EDIT}>
+        <Can permission={PERMISSIONS.PRODUCT_UPDATE}>
           <DropdownMenuItem className="hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-600">
             <Edit className="w-4 h-4 mr-2 " />
           < Button onClick={handleEdit} className="cursor-pointer ">Edit</Button>

@@ -47,7 +47,7 @@ export const RolesColumns = [
 
     cell: ({ row }) => (
       <div className="font-medium">
-        {row.original.users}
+        {row.original.users ?? 0}
       </div>
     ),
   },
@@ -56,11 +56,15 @@ export const RolesColumns = [
     accessorKey: "permissions",
     header: "Permissions",
 
-    cell: ({ row }) => (
-      <Badge variant="secondary">
-        {row.original.permissions.length} Permissions
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const perms = row.original.permissions;
+      const count = Array.isArray(perms) ? perms.length : 0;
+      return (
+        <Badge variant="secondary">
+          {count} Permissions
+        </Badge>
+      );
+    },
   },
 
   {

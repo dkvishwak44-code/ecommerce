@@ -1,9 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDateTime } from "@/utils/date-time";
 
 import { Calendar, Clock, CheckCircle } from "lucide-react";
 
-export default function AccountOverview() {
+export default function AccountOverview({user}) {
   return (
     <Card>
       <CardHeader>
@@ -18,7 +19,7 @@ export default function AccountOverview() {
             <Calendar size={16} />
             <span className="text-xs">Member Since</span>
           </div>
-          <span className="text-xs">Jan 2024</span>
+          <span className="text-xs">{formatDateTime(user?.createdAt)}</span>
         </div>
 
         {/* Last Login */}
@@ -27,7 +28,7 @@ export default function AccountOverview() {
             <Clock size={16} />
             <span className="text-xs">Last Login</span>
           </div>
-          <span className="text-xs">Today, 10:30 AM</span>
+          <span className="text-xs">{formatDateTime(user?.lastLoginAt)}</span>
         </div>
 
         {/* Status */}
@@ -37,7 +38,7 @@ export default function AccountOverview() {
             <span className="text-xs">Status</span>
           </div>
           <Badge variant="outline" className="text-green-600 border-green-500">
-            Active
+            {user?.status}
           </Badge>
         </div>
 

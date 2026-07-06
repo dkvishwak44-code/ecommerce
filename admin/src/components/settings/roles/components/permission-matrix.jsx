@@ -1,254 +1,179 @@
 
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  CheckCheck,
-  Minus,
-  Package,
-  ShoppingCart,
-  Users,
-  BarChart2,
-  Settings,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LayoutDashboard, Package, Shield, ShoppingCart, Store, User } from "lucide-react";
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+// ── Config ────────────────────────────────────────────────────────────────────
+const ALLOWED_MODULES = ["product", "order", "role", "dashboard", "store", "user"];
+const CRUD_ACTIONS    = ["create", "read", "update", "delete"];
 
-export const modules = [
-  { id: "products",   label: "Products",   icon: Package },
-  { id: "orders",     label: "Orders",     icon: ShoppingCart },
-  { id: "users",      label: "Users",      icon: Users },
-  { id: "analytics",  label: "Analytics",  icon: BarChart2 },
-  { id: "settings",   label: "Settings",   icon: Settings },
-];
+const ACTION_STYLE = {
+  create: { label: "Create", color: "text-blue-600 dark:text-blue-400",     accent: "accent-blue-500"    },
+  read:   { label: "Read",   color: "text-green-600 dark:text-green-400",   accent: "accent-green-500"   },
+  update: { label: "Update", color: "text-yellow-600 dark:text-yellow-500", accent: "accent-yellow-500"  },
+  delete: { label: "Delete", color: "text-red-600 dark:text-red-400",       accent: "accent-red-500"     },
+};
 
-export const actions = [
-  {
-    id: "view",
-    label: "View",
-    badgeClass:
-      "bg-sky-500/10 text-sky-600 border-sky-500/20 hover:bg-sky-500/10 dark:text-sky-400",
-    checkboxClass:
-      "data-[state=checked]:bg-sky-500 data-[state=checked]:border-sky-500",
-    dotClass: "bg-sky-500",
-  },
-  {
-    id: "create",
-    label: "Create",
-    badgeClass:
-      "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10 dark:text-emerald-400",
-    checkboxClass:
-      "data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500",
-    dotClass: "bg-emerald-500",
-  },
-  {
-    id: "update",
-    label: "Update",
-    badgeClass:
-      "bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/10 dark:text-amber-400",
-    checkboxClass:
-      "data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500",
-    dotClass: "bg-amber-500",
-  },
-  {
-    id: "delete",
-    label: "Delete",
-    badgeClass:
-      "bg-rose-500/10 text-rose-600 border-rose-500/20 hover:bg-rose-500/10 dark:text-rose-400",
-    checkboxClass:
-      "data-[state=checked]:bg-rose-500 data-[state=checked]:border-rose-500",
-    dotClass: "bg-rose-500",
-  },
-];
+const MODULE_ICON = {
+  product:   <Package         className="h-4 w-4 text-orange-500" />,
+  order:     <ShoppingCart    className="h-4 w-4 text-blue-500"   />,
+  role:      <Shield         className="h-4 w-4 text-violet-500" />,
+  dashboard: <LayoutDashboard className="h-4 w-4 text-green-500"  />,
+  store:     <Store           className="h-4 w-4 text-yellow-500" />,
+  user:      <User            className="h-4 w-4 text-pink-500"   />,
+};
+// ── Build matrix ──────────────────────────────────────────────────────────────
+const buildMatrix = (permissions = []) => {
+  const matrix = {};
+  ALLOWED_MODULES.forEach((mod) => {
+    const filtered = permissions.filter(
+      (p) => p.module === mod && CRUD_ACTIONS.includes(p.action)
+    );
+    if (filtered.length > 0) matrix[mod] = filtered;
+  });
+  return matrix;
+};
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
+export default function PermissionMatrix({ permissions = [], value = {}, onChange }) {
+  const matrix = buildMatrix(permissions);
 
-export default function PermissionMatrix({ value = {}, onChange }) {
-  const handleChange = (moduleId, actionId, checked) => {
-    const updated = { ...value };
-    if (!updated[moduleId]) updated[moduleId] = [];
-    updated[moduleId] = checked
-      ? [...updated[moduleId], actionId]
-      : updated[moduleId].filter((a) => a !== actionId);
-    onChange(updated);
+  const isGranted     = (mod, key) => (value[mod] ?? []).includes(key);
+  const grantedCount  = (mod) => (value[mod] ?? []).length;
+  const totalInModule = (mod) => matrix[mod]?.length ?? 0;
+
+  // Toggle single permission
+  const toggle = (mod, key) => {
+    const current = value[mod] ?? [];
+    const updated = current.includes(key)
+      ? current.filter((k) => k !== key)
+      : [...current, key];
+    onChange({ ...value, [mod]: updated });
   };
 
-  const isAllChecked = (moduleId) =>
-    actions.every((a) => value?.[moduleId]?.includes(a.id));
-
-  const getCount = (moduleId) =>
-    actions.filter((a) => value?.[moduleId]?.includes(a.id)).length;
-
-  const toggleRow = (moduleId) => {
-    const updated = { ...value };
-    updated[moduleId] = isAllChecked(moduleId) ? [] : actions.map((a) => a.id);
-    onChange(updated);
+  // Toggle all in a module
+  const toggleAll = (mod) => {
+    const allKeys    = matrix[mod].map((p) => p.key);
+    const current    = value[mod] ?? [];
+    const allGranted = allKeys.every((k) => current.includes(k));
+    onChange({ ...value, [mod]: allGranted ? [] : allKeys });
   };
 
-  const toggleAllModules = () => {
-    const allFull = modules.every((m) => isAllChecked(m.id));
-    const updated = {};
-    modules.forEach((m) => {
-      updated[m.id] = allFull ? [] : actions.map((a) => a.id);
+  // Toggle everything
+  const toggleEverything = () => {
+    const allGranted = ALLOWED_MODULES.every((mod) => {
+      const allKeys = matrix[mod]?.map((p) => p.key) ?? [];
+      return allKeys.every((k) => (value[mod] ?? []).includes(k));
     });
-    onChange(updated);
+    if (allGranted) {
+      onChange({});
+    } else {
+      const all = {};
+      ALLOWED_MODULES.forEach((mod) => {
+        if (matrix[mod]) all[mod] = matrix[mod].map((p) => p.key);
+      });
+      onChange(all);
+    }
   };
 
-  const totalGranted = Object.values(value ?? {}).reduce(
-    (sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0),
-    0
+  const totalGranted = Object.values(value).reduce(
+    (sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0
   );
+  const totalAvailable = ALLOWED_MODULES.reduce(
+    (sum, mod) => sum + (matrix[mod]?.length ?? 0), 0
+  );
+  const allGranted = totalGranted === totalAvailable && totalAvailable > 0;
 
   return (
-    <TooltipProvider>
-      <div className="w-full">
+    <div className="divide-y divide-border">
 
-        {/* Header */}
-        <div className="grid grid-cols-[minmax(180px,2fr)_repeat(4,1fr)_52px] items-center border-b border-border  px-5 py-3">
-          <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-            Module
+      {/* ── Global Select All Header ──────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-5 py-3 bg-muted/30">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={allGranted}
+            onChange={toggleEverything}
+            className="h-4 w-4 rounded accent-violet-500 cursor-pointer"
+          />
+          <span className="text-xs font-semibold text-foreground">
+            Select All Permissions
           </span>
-          {actions.map((action) => (
-            <div key={action.id} className="flex justify-center">
-              <Badge
-                variant="outline"
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                  action.badgeClass
-                )}
-              >
-                {action.label}
-              </Badge>
-            </div>
-          ))}
-          {/* Global toggle-all */}
-          <div className="flex justify-center">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={toggleAllModules}
-                  className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <CheckCheck className="h-3.5 w-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                Toggle all modules
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-
-        {/* Module rows */}
-        {modules.map((mod, idx) => {
-          const Icon = mod.icon;
-          const count = getCount(mod.id);
-          const allChecked = isAllChecked(mod.id);
-
-          return (
-            <div
-              key={mod.id}
-              className={cn(
-                "group grid grid-cols-[minmax(180px,2fr)_repeat(4,1fr)_52px] items-center px-5 py-4 transition-colors hover:bg-muted/30 bg-card",
-                idx !== modules.length - 1 && "border-b border-border/70"
-              )}
-            >
-              {/* Module info */}
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-background shadow-sm">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium leading-none text-foreground">
-                    {mod.label}
-                  </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    {count > 0
-                      ? `${count} of ${actions.length} permissions`
-                      : "No access"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Per-action checkboxes */}
-              {actions.map((action) => (
-                <div key={action.id} className="flex justify-center">
-                  <Checkbox
-                    checked={!!value?.[mod.id]?.includes(action.id)}
-                    onCheckedChange={(checked) =>
-                      handleChange(mod.id, action.id, !!checked)
-                    }
-                    className={cn(
-                      "h-[18px] w-[18px] rounded-[5px] border-border/80 transition-all",
-                      action.checkboxClass
-                    )}
-                  />
-                </div>
-              ))}
-
-              {/* Row toggle-all (visible on hover) */}
-              <div className="flex justify-center">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleRow(mod.id)}
-                      className={cn(
-                        "h-7 w-7 rounded-lg opacity-0 transition-opacity group-hover:opacity-100",
-                        allChecked
-                          ? "text-violet-500 hover:bg-violet-500/10"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {allChecked
-                        ? <Minus className="h-3.5 w-3.5" />
-                        : <CheckCheck className="h-3.5 w-3.5" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="text-xs">
-                    {allChecked ? "Revoke all" : "Grant all"}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Summary footer */}
-        {totalGranted > 0 && (
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-border/50 bg-muted/20 px-5 py-3">
-            <span className="text-[11px] font-semibold text-muted-foreground">
-              Summary:
-            </span>
-            {actions.map((action) => {
-              const count = modules.filter((m) =>
-                value?.[m.id]?.includes(action.id)
-              ).length;
-              if (!count) return null;
-              return (
-                <div key={action.id} className="flex items-center gap-1.5">
-                  <span className={cn("h-1.5 w-1.5 rounded-full", action.dotClass)} />
-                  <span className="text-[11px] text-muted-foreground">
-                    {action.label}:{" "}
-                    <span className="font-semibold text-foreground">{count}</span>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
+        </label>
+        <span className="text-[11px] text-muted-foreground">
+          {totalGranted} / {totalAvailable} granted
+        </span>
       </div>
-    </TooltipProvider>
+
+      {/* ── Module Rows ───────────────────────────────────────────────────── */}
+      {ALLOWED_MODULES.map((mod) => {
+        const perms = matrix[mod];
+        if (!perms || perms.length === 0) return null;
+
+        const count          = grantedCount(mod);
+        const total          = totalInModule(mod);
+        const modAllGranted  = count === total;
+        const modSomeGranted = count > 0 && count < total;
+
+        return (
+          <div key={mod} className="grid grid-cols-[200px_1fr] divide-x divide-border">
+
+            {/* Left — Module + select all checkbox */}
+            <div className="flex flex-col justify-center gap-1.5 px-5 py-4 bg-muted/10">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={modAllGranted}
+                  ref={(el) => { if (el) el.indeterminate = modSomeGranted; }}
+                  onChange={() => toggleAll(mod)}
+                  className="h-4 w-4 rounded accent-violet-500 cursor-pointer"
+                />
+                <span className="flex items-center gap-1.5">
+                  <span>{MODULE_ICON[mod]}</span>
+                  <span className="text-sm font-semibold capitalize text-foreground">
+                    {mod}
+                  </span>
+                </span>
+              </label>
+              {count > 0 && (
+                <span className="ml-6 text-[10px] text-muted-foreground">
+                  {count}/{total} selected
+                </span>
+              )}
+            </div>
+
+            {/* Right — CRUD checkboxes */}
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4">
+              {perms.map((perm) => {
+                const style   = ACTION_STYLE[perm.action];
+                const granted = isGranted(mod, perm.key);
+
+                return (
+                  <label
+                    key={perm.key}
+                    className="flex items-center gap-2 cursor-pointer select-none group"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={granted}
+                      onChange={() => toggle(mod, perm.key)}
+                      className={cn("h-4 w-4 rounded cursor-pointer", style.accent)}
+                    />
+                    <span className={cn(
+                      "text-sm font-medium transition-colors",
+                      granted
+                        ? style.color
+                        : "text-muted-foreground group-hover:text-foreground"
+                    )}>
+                      {style.label}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+          </div>
+        );
+      })}
+    </div>
   );
 }

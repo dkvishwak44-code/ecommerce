@@ -15,7 +15,7 @@ export default function LayoutWrapper({ children }) {
       {!isMobile && <Sidebar />}
 
       {/* Main Area */}
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 min-w-0">
 
         <Header />
 

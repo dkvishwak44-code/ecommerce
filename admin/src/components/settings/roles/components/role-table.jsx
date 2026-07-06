@@ -61,17 +61,14 @@ const rolesData = [
   },
 ];
 
-export default function RolesTable() {
-  const data = useMemo(() => rolesData, []);
-
+export default function RolesTable({roles:data = [], isLoading}) {
   return (
     <div className="space-y-5 bg-card">
-      
-
       {/* CUSTOM TABLE */}
       <DataTable
         columns={RolesColumns}
         data={data}
+        isLoading={isLoading}
       />
     </div>
   );
