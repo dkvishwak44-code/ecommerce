@@ -138,7 +138,7 @@ const changePassword = asyncHandler(async (req, res) => {
     currentPassword,
     newPassword
   );
-  return sendSuccess(res, null, result.message, 200);
+  return sendSuccess(res,{message:result.message, statusCode: 200});
 });
 
 // ─── Forgot Password ──────────────────────────────────────────────────────────

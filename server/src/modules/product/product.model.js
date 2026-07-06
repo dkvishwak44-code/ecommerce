@@ -1,168 +1,137 @@
-// modules/product/product.model.js
-
 import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
   {
     name: {
-      type: String,
+      type:     String,
       required: true,
-      trim: true,
+      trim:     true,
     },
 
     slug: {
-      type: String,
+      type:   String,
       unique: true,
-      index: true,
+      index:  true,
     },
 
-    description: String,
-
-    shortDescription: String,
+    description:      { type: String, trim: true },
+    shortDescription: { type: String, trim: true },
 
     sku: {
-      type: String,
-      unique: true,
+      type:     String,
+      unique:   true,
       required: true,
+      trim:     true,
     },
 
     price: {
-      type: Number,
+      type:     Number,
       required: true,
+      min:      0,
     },
 
-    salePrice: Number,
-
-    costPrice: Number,
+    salePrice:  { type: Number, default: null, min: 0 },
+    costPrice:  { type: Number, default: null, min: 0 },
 
     stock: {
-      type: Number,
+      type:    Number,
       default: 0,
+      min:     0,
     },
 
     lowStockThreshold: {
-      type: Number,
+      type:    Number,
       default: 5,
+      min:     0,
     },
 
     images: [
       {
-        url: String,
-        public_id: String,
+        url:       { type: String, default: null },
+        public_id: { type: String, default: null },
       },
     ],
 
     thumbnail: {
-      url: String,
-      public_id: String,
+      url:       { type: String, default: null },
+      public_id: { type: String, default: null },
     },
 
-    // categoryId: {
-    //   type: mongoose.Schema.Types.ObjectId,
-    //   ref: "Category",
-    //   required: true,
-    // },
+    // ── Category (string array) ───────────────────────────────
+    category: {
+      type:     [String],   // trim array strings pe kaam nahi karta
+      required: true,
+    },
 
-    // sellerId: {
-    //   type: mongoose.Schema.Types.ObjectId,
-    //   ref: "User",
-    //   required: true,
-    //   index: true,
-    // },
-    category:{
-      type:[String],
-      required:true,
-      trim:true,
+    // ── Ownership ─────────────────────────────────────────────
+    sellerId: {
+      type:  mongoose.Schema.Types.ObjectId,
+      ref:   "User",
+      index: true,
+      default: null,
     },
 
     createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type:     mongoose.Schema.Types.ObjectId,
+      ref:      "User",
       required: true,
-      index: true,
+      index:    true,
     },
 
     storeId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Store",
+      type:     mongoose.Schema.Types.ObjectId,
+      ref:      "Store",
       required: true,
-      index: true,
+      index:    true,
     },
 
     tags: [String],
 
     variants: [
       {
-        name: String,
-        value: String,
-        price: Number,
-        stock: Number,
+        name:  { type: String, trim: true },
+        value: { type: String, trim: true },
+        price: { type: Number, min: 0 },
+        stock: { type: Number, min: 0, default: 0 },
       },
     ],
 
     attributes: [
       {
-        name: String,
-        value: String,
+        name:  { type: String, trim: true },
+        value: { type: String, trim: true },
       },
     ],
 
     seo: {
-      metaTitle: String,
-      metaDescription: String,
-      keywords: [String],
+      metaTitle:       { type: String, trim: true, default: null },
+      metaDescription: { type: String, trim: true, default: null },
+      keywords:        [String],
     },
 
-    rating: {
-      type: Number,
-      default: 0,
-    },
+    rating:       { type: Number, default: 0, min: 0, max: 5 },
+    totalReviews: { type: Number, default: 0, min: 0 },
+    totalSales:   { type: Number, default: 0, min: 0 },
 
-    totalReviews: {
-      type: Number,
-      default: 0,
-    },
-
-    totalSales: {
-      type: Number,
-      default: 0,
-    },
-
-    isFeatured: {
-      type: Boolean,
-      default: false,
-    },
-
-    isPublished: {
-      type: Boolean,
-      default: true,
-    },
+    isFeatured:  { type: Boolean, default: false },
+    isPublished: { type: Boolean, default: true  },
 
     status: {
-      type: String,
-      enum: ["draft", "active", "inactive"],
+      type:    String,
+      enum:    ["draft", "active", "inactive"],
       default: "active",
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-productSchema.index({ name: "text", description: "text" });
-
+// ── Indexes ───────────────────────────────────────────────────
+productSchema.index({ name: "text", description: "text" }); // search
+productSchema.index({ storeId: 1,   status: 1 });           // store filter
+productSchema.index({ createdBy: 1, createdAt: -1 });       // creator list
 productSchema.index({ sellerId: 1 });
-
-productSchema.index({ createdBy: 1 });
-
-productSchema.index({ storeId: 1 });
-
-productSchema.index({ categoryId: 1 });
-
 productSchema.index({ slug: 1 });
-
 productSchema.index({ sku: 1 });
-
 productSchema.index({ createdAt: -1 });
 
 export default mongoose.model("Product", productSchema);

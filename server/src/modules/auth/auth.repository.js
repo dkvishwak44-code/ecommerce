@@ -18,7 +18,7 @@ class AuthRepository {
 
 async findUserByEmailWithPassword(email) {
   return User.findOne({ email: email.toLowerCase() })
-    .select("+password +isFirstLogin +loginAttempts +lockUntil +isActive +isEmailVerified")
+    .select("+password +isFirstLogin +loginAttempts +lockUntil +isActive +isEmailVerified +createdAt +updatedAt")
     .populate({
       path: "role",
       select: "name", // ← sirf name, permissions nahi

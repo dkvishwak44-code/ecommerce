@@ -17,6 +17,7 @@ import {
   updateProductSchema,
 } from "../../../modules/product/product.validation.js";
 import { PERMISSIONS } from "../../../constants/permissions.js";
+import { uploadProductImages } from "../../../config/multer.js";
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.post(
   "/",
   checkPermission(PERMISSIONS.PRODUCT.CREATE),
   // validate(createProductSchema),
+   uploadProductImages,
   createProduct
 );
 
@@ -45,6 +47,7 @@ router.patch(
   "/:id",
   checkPermission(PERMISSIONS.PRODUCT.UPDATE),
   // validate(updateProductSchema),
+   uploadProductImages,
   updateProduct
 );
 

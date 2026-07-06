@@ -16,7 +16,6 @@
  */
 const sendSuccess = (res, { message = 'Success', result = null, meta = null, statusCode = 200 } = {}) => {
   const payload = { success: true, message };
-  console.log("result :",result);
   if (result !== null && result !== undefined) payload.result = result;
   if (meta !== null && meta !== undefined) payload.meta = meta;
   return res.status(statusCode).json(payload);

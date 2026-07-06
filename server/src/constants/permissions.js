@@ -48,8 +48,11 @@ export const PERMISSIONS = {
 
   // ── Permission ─────────────────────────────────────────────────────────────
   PERMISSION: {
+    CREATE:   "permission.create",
     READ:     "permission.read",
     READ_ALL: "permission.read_all",
+    UPDATE:   "permission.update",
+    DELETE:   "permission.delete",
   },
 
   // ── Store / Company ────────────────────────────────────────────────────────

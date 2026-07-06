@@ -70,7 +70,7 @@ const roleSchema = new Schema(
 roleSchema.index({ name: 1, isActive: 1 });
 roleSchema.index({ isSystem: 1, isActive: 1 });
 
-roleSchema.pre("validate", function (next) {
+roleSchema.pre("validate", function () {
   if (this.name) {
     this.name = this.name.toLowerCase().trim();
   }
@@ -86,7 +86,6 @@ roleSchema.pre("validate", function (next) {
     this.permissions = [...uniquePermissionIds.values()];
   }
 
-  next();
 });
 
 roleSchema.virtual("permissionCount").get(function () {

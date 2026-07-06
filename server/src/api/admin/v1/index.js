@@ -8,8 +8,8 @@
 import express          from "express";
 import authRoutes        from "./auth.routes.js";
 import userRoutes        from "./user.routes.js";
-// import roleRoutes        from "./role.routes.js";
-// import permissionRoutes  from "./permission.routes.js";
+import roleRoutes        from "./role.routes.js";
+import permissionRoutes  from "./permission.routes.js";
 import storeRoutes       from "./store.routes.js";
 import productRoutes     from "./product.routes.js";
 // import categoryRoutes    from "./category.routes.js";
@@ -30,8 +30,8 @@ const router = express.Router();
 // ── Mount ─────────────────────────────────────────────────────────────────────
 router.use("/auth",          authRoutes);
 router.use("/users",         userRoutes);
-// router.use("/roles",         roleRoutes);
-// router.use("/permissions",   permissionRoutes);
+router.use("/roles",         roleRoutes);
+router.use("/permissions",   permissionRoutes);
 router.use("/stores",        storeRoutes);
 router.use("/products", productRoutes);
 // router.use("/categories",    categoryRoutes);

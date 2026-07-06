@@ -1,6 +1,7 @@
 // const cloudinary = require('cloudinary').v2;
 import { v2 as cloudinary } from "cloudinary";
 import { logger } from "./logger.js";
+// import { logger } from "./logger.js";
 // const logger = require('./logger');
 // import {logger} from './logger';
 

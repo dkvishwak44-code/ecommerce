@@ -1,6 +1,7 @@
 // middleware/permission.middleware.js
 
 export const checkPermission = (...requiredPermissions) => {
+
   return (req, res, next) => {
     const userPermissions = req.user.permissions || [];
 

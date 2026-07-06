@@ -3,6 +3,7 @@ import Product from "../product.model.js";
 import Store from "../../store/store.model.js";
 import { AppError } from "../../../utils/AppError.js";
 import { auditLog } from "../../../utils/auditLogger.js";
+import { deleteManyFromCloudinary } from "../../../utils/cloudinary.js";
 
 const isPlatformAdmin = (req) =>
   req.user?.roleName === "superadmin" ||
@@ -68,37 +69,74 @@ const buildListQuery = (req) => {
   return query;
 };
 
+// export const createProduct = async (req) => {
+//   const payload = req.body;
+//   const store = await resolveStore(payload.storeId);
+//   assertCanUseStore(req, store._id);
+
+//   const exists = await Product.findOne({ sku: payload.sku }).select("_id").lean();
+//   if (exists) {
+//     throw new AppError("SKU already exists.", 409);
+//   }
+
+//   const createdBy = getUserId(req);
+//   const sellerId = isPlatformAdmin(req)
+//     ? payload.sellerId || store.owner
+//     : createdBy;
+
+//   const product = await Product.create({
+//     ...payload,
+//     slug: generateSlug(payload.name),
+//     storeId: store._id,
+//     sellerId,
+//     createdBy,
+//   });
+
+//   auditLog({
+//     action: "CREATE",
+//     entity: "PRODUCT",
+//     entityId: product._id,
+//     req,
+//     changes: { after: product },
+//   });
+
+//   return product;
+// };
+
+
 export const createProduct = async (req) => {
   const payload = req.body;
   const store = await resolveStore(payload.storeId);
   assertCanUseStore(req, store._id);
 
   const exists = await Product.findOne({ sku: payload.sku }).select("_id").lean();
-  if (exists) {
-    throw new AppError("SKU already exists.", 409);
-  }
+  if (exists) throw new AppError("SKU already exists.", 409);
+
+  // ── Cloudinary uploaded files ──────────────────────────────
+  const images = req.files?.map((file) => ({
+    url:       file.path,      // cloudinary secure_url
+    public_id: file.filename,  // cloudinary public_id
+  })) ?? [];
+
+  const thumbnail = images.length > 0 ? images[0] : null;
+  // ──────────────────────────────────────────────────────────
 
   const createdBy = getUserId(req);
-  const sellerId = isPlatformAdmin(req)
+  const sellerId  = isPlatformAdmin(req)
     ? payload.sellerId || store.owner
     : createdBy;
 
   const product = await Product.create({
     ...payload,
-    slug: generateSlug(payload.name),
-    storeId: store._id,
+    slug:      generateSlug(payload.name),
+    storeId:   store._id,
     sellerId,
     createdBy,
+    images,      // ← add
+    thumbnail,   // ← add
   });
 
-  auditLog({
-    action: "CREATE",
-    entity: "PRODUCT",
-    entityId: product._id,
-    req,
-    changes: { after: product },
-  });
-
+  auditLog({ action: "CREATE", entity: "PRODUCT", entityId: product._id, req, changes: { after: product } });
   return product;
 };
 
@@ -147,25 +185,96 @@ export const getProductById = async (req) => {
   return product;
 };
 
+// export const updateProduct = async (req) => {
+//   const product = await Product.findById(req.params.id);
+//   if (!product) {
+//     throw new AppError("Product not found.", 404);
+//   }
+
+//   assertCanUseStore(req, product.storeId);
+
+//   const oldData = product.toObject();
+//   const updates = { ...req.body };
+//   delete updates.createdBy;
+
+//   if (updates.sku && updates.sku !== product.sku) {
+//     const exists = await Product.findOne({ sku: updates.sku, _id: { $ne: product._id } })
+//       .select("_id")
+//       .lean();
+//     if (exists) {
+//       throw new AppError("SKU already exists.", 409);
+//     }
+//   }
+
+//   if (updates.storeId) {
+//     const store = await resolveStore(updates.storeId);
+//     assertCanUseStore(req, store._id);
+//     updates.storeId = store._id;
+//     if (isPlatformAdmin(req) && !updates.sellerId) {
+//       updates.sellerId = store.owner;
+//     }
+//   }
+
+//   if (!isPlatformAdmin(req)) {
+//     delete updates.sellerId;
+//     delete updates.storeId;
+//   }
+
+//   if (updates.name) {
+//     updates.slug = generateSlug(updates.name);
+//   }
+
+//   Object.assign(product, updates);
+//   await product.save();
+
+//   auditLog({
+//     action: "UPDATE",
+//     entity: "PRODUCT",
+//     entityId: product._id,
+//     req,
+//     changes: {
+//       before: oldData,
+//       after: product,
+//     },
+//   });
+
+//   return product;
+// };
+
 export const updateProduct = async (req) => {
   const product = await Product.findById(req.params.id);
-  if (!product) {
-    throw new AppError("Product not found.", 404);
-  }
+  if (!product) throw new AppError("Product not found.", 404);
 
   assertCanUseStore(req, product.storeId);
 
-  const oldData = product.toObject();
-  const updates = { ...req.body };
+  const oldData  = product.toObject();
+  const updates  = { ...req.body };
   delete updates.createdBy;
+
+  // ── Cloudinary: naye images aaye hain ──────────────────────
+  if (req.files?.length > 0) {
+    // Purane images delete karo cloudinary se
+    const oldPublicIds = product.images
+      ?.map((img) => img.public_id)
+      .filter(Boolean) ?? [];
+
+    if (oldPublicIds.length > 0) {
+      await deleteManyFromCloudinary(oldPublicIds);
+    }
+
+    // Naye images set karo
+    updates.images    = req.files.map((file) => ({
+      url:       file.path,
+      public_id: file.filename,
+    }));
+    updates.thumbnail = updates.images[0];
+  }
+  // ──────────────────────────────────────────────────────────
 
   if (updates.sku && updates.sku !== product.sku) {
     const exists = await Product.findOne({ sku: updates.sku, _id: { $ne: product._id } })
-      .select("_id")
-      .lean();
-    if (exists) {
-      throw new AppError("SKU already exists.", 409);
-    }
+      .select("_id").lean();
+    if (exists) throw new AppError("SKU already exists.", 409);
   }
 
   if (updates.storeId) {
@@ -182,45 +291,55 @@ export const updateProduct = async (req) => {
     delete updates.storeId;
   }
 
-  if (updates.name) {
-    updates.slug = generateSlug(updates.name);
-  }
+  if (updates.name) updates.slug = generateSlug(updates.name);
 
   Object.assign(product, updates);
   await product.save();
 
-  auditLog({
-    action: "UPDATE",
-    entity: "PRODUCT",
-    entityId: product._id,
-    req,
-    changes: {
-      before: oldData,
-      after: product,
-    },
-  });
-
+  auditLog({ action: "UPDATE", entity: "PRODUCT", entityId: product._id, req, changes: { before: oldData, after: product } });
   return product;
 };
 
+// export const deleteProduct = async (req) => {
+//   const product = await Product.findById(req.params.id);
+//   if (!product) {
+//     throw new AppError("Product not found.", 404);
+//   }
+
+//   assertCanUseStore(req, product.storeId);
+//   await product.deleteOne();
+
+//   auditLog({
+//     action: "DELETE",
+//     entity: "PRODUCT",
+//     entityId: product._id,
+//     req,
+//     changes: { before: product },
+//   });
+
+//   return {
+//     message: "Product deleted successfully.",
+//   };
+// };
 export const deleteProduct = async (req) => {
   const product = await Product.findById(req.params.id);
-  if (!product) {
-    throw new AppError("Product not found.", 404);
-  }
+  if (!product) throw new AppError("Product not found.", 404);
 
   assertCanUseStore(req, product.storeId);
+
+  // ── Cloudinary: sab images delete karo ────────────────────
+  const publicIds = [
+    ...(product.images?.map((img) => img.public_id) ?? []),
+    product.thumbnail?.public_id,
+  ].filter(Boolean);
+
+  if (publicIds.length > 0) {
+    await deleteManyFromCloudinary(publicIds);
+  }
+  // ──────────────────────────────────────────────────────────
+
   await product.deleteOne();
 
-  auditLog({
-    action: "DELETE",
-    entity: "PRODUCT",
-    entityId: product._id,
-    req,
-    changes: { before: product },
-  });
-
-  return {
-    message: "Product deleted successfully.",
-  };
+  auditLog({ action: "DELETE", entity: "PRODUCT", entityId: product._id, req, changes: { before: product } });
+  return { message: "Product deleted successfully." };
 };
