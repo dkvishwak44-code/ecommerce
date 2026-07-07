@@ -34,7 +34,7 @@ router.get(
   "/",
   authenticate,
   restrictTo("superadmin", "admin", "seller"),
-  checkPermission(PERMISSIONS.USER_LIST),
+  checkPermission(PERMISSIONS.USER.READ),
   getAllUsers
 );
 

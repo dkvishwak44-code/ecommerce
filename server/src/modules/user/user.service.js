@@ -5,6 +5,7 @@ import { AppError } from "../../utils/AppError.js";
 import { logger } from "../../config/logger.js";
 import { emitAuthEvent } from "../auth/auth.events.js";
 import { userCreatedTemplate } from "../../utils/emailTemplates/userCreatedTemplate.js";
+const { sendEmail } = await import("../../utils/sendEmail.js");
 
 // ─── Create User By Admin ─────────────────────────────────────────────────────
 
@@ -59,7 +60,6 @@ export const createUserByAdmin = async ({
 
   // 4. Send welcome email with temporary credentials
   try {
-    const { sendEmail } = await import("../../utils/sendEmail.js");
     await sendEmail({
       to: email,
       subject: template.subject,
@@ -68,6 +68,7 @@ export const createUserByAdmin = async ({
     });
   } catch (err) {
     // Non-fatal — user is created; email failure just gets logged
+    console.log("err messge :",err.message);
     logger.error(
       `[createUserByAdmin] Failed to send welcome email to ${email}: ${err.message}`,
     );
@@ -145,15 +146,31 @@ export const getUserById = async (userId) => {
 
 // ─── Get All Users ────────────────────────────────────────────────────────────
 
-export const getUsers = async (query = {}) => {
+export const getUsers = async (query = {}, requester = {}) => {
   const page = Math.max(1, parseInt(query.page) || 1);
   const limit = Math.min(100, parseInt(query.limit) || 20);
   const skip = (page - 1) * limit;
 
   const filter = {};
+
+  //  Role-based scoping
+  if (requester.roleName !== "superadmin") {
+    // non-superadmin ko sirf apne store ke users milenge
+    if (!requester.storeId) {
+      // agar requester ke paas store hi nahi hai to empty result
+      return {
+        users: [],
+        pagination: { total: 0, page, limit, totalPages: 0, hasNextPage: false, hasPrevPage: false },
+      };
+    }
+    filter.store = requester.storeId;
+  } else if (query.store) {
+    // superadmin optionally kisi specific store ka data filter kar sakta hai
+    filter.store = query.store;
+  }
+
   if (query.status) filter.status = query.status;
   if (query.roleName) filter.roleName = query.roleName;
-  if (query.store) filter.store = query.store;
   if (query.search) {
     filter.$or = [
       { name: { $regex: query.search, $options: "i" } },
@@ -184,7 +201,6 @@ export const getUsers = async (query = {}) => {
     },
   };
 };
-
 // ─── Reset User Password (Admin) ──────────────────────────────────────────────
 
 /**

@@ -23,12 +23,17 @@ export const createUser = asyncHandler(async (req, res) => {
     storeId,
     createdBy: req.user.id,
   });
-  return sendSuccess(res, result, result.message, 201);
+  return sendSuccess(res, {message: result.message,result,statusCode:201});
 });
 
 export const getAllUsers = asyncHandler(async (req, res) => {
-  const result = await getUsers(req.query);
-  return sendSuccess(res, result, "Users fetched successfully", 200);
+   const requester = {
+      roleName: req.user.roleName, // ya req.user.roleName, jo bhi tumhare JWT payload mein hai
+      storeId: req.user.storeId, // req.user.storeId
+    };
+  const result = await getUsers(req.query, requester);
+  console.log("result :",result);
+  return sendSuccess(res, {message:"Users fetched successfully",result,statusCode:200 });
 });
 
 export const getUser = asyncHandler(async (req, res) => {
