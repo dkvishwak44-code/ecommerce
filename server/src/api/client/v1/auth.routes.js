@@ -19,28 +19,25 @@ import {
   changePassword,
 } from "../../../modules/auth/auth.controller.js";
 
-// import { customerAuthenticate } from "../../../middleware/customerAuth.middleware.js";
-// import {customerAuthenticate } from "../../../middleware/customerAuth.middleware.js
-//"
-
 import { validate }             from "../../../middleware/validate.middleware.js";
 import { rateLimiter }          from "../../../middleware/rateLimit.middleware.js";
 import {
   registerSchema,
   verifyOtpSchema,
+  resendOtpSchema,
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   changePasswordSchema,
 } from "../../../modules/auth/auth.validation.js";
-import { customerOptionalAuth } from "../../../middleware/customerAuth.middleware.js";
+import { customerAuthenticate } from "../../../middleware/customerAuth.middleware.js";
 
 const router = Router();
 
 // ── Public ────────────────────────────────────────────────────────────────────
 router.post("/register",         rateLimiter("register"),  validate(registerSchema),         register);
 router.post("/verify-otp",       rateLimiter("otp"),       validate(verifyOtpSchema),        verifyOtp);
-router.post("/resend-otp",       rateLimiter("otp"),       validate(verifyOtpSchema),        resendOtp);
+router.post("/resend-otp",       rateLimiter("otp"),       validate(resendOtpSchema),        resendOtp);
 router.post("/login",            rateLimiter("login"),     validate(loginSchema),            login);
 router.post("/refresh-token",                                                                refreshToken);
 router.post("/forgot-password",  rateLimiter("otp"),       validate(forgotPasswordSchema),   forgotPassword);
@@ -50,4 +47,4 @@ router.post("/reset-password",                             validate(resetPasswor
 router.post("/logout",           customerAuthenticate,                                       logout);
 router.patch("/change-password", customerAuthenticate, validate(changePasswordSchema),       changePassword);
 
-export {router as authRoutes};
+export default router;

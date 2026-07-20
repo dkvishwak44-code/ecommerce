@@ -13,29 +13,39 @@
 import { Router } from "express";
 import {
   getProducts,
+  getProductById,
   getProductBySlug,
   getProductsByCategory,
-  getProductsByBrand,
   getRelatedProducts,
+  getFeaturedProducts,
   getNewArrivals,
   getBestSellers,
   searchProducts,
-} from "../../../modules/product/client/product.controller.js";
+  buyNow,
+} from "../../../modules/product/public/product.controller.js";
+import { customerAuthenticate } from "../../../middleware/customerAuth.middleware.js";
+import { validate } from "../../../middleware/validate.middleware.js";
+import { addToCartSchema } from "../../../modules/cart/cart.validation.js";
+
 const router = Router();
 
 // ── Discovery ─────────────────────────────────────────────────────────────────
 router.get("/",                     getProducts);           // all products with filters
 router.get("/search",               searchProducts);        // ?q=keyword full-text search
+router.get("/featured",             getFeaturedProducts);
 router.get("/new-arrivals",         getNewArrivals);        // sorted by createdAt desc
 router.get("/best-sellers",         getBestSellers);        // sorted by soldCount desc
 
 // ── Filtered Lists ────────────────────────────────────────────────────────────
-router.get("/category/:slug",       getProductsByCategory); // products in a category
-router.get("/brand/:slug",          getProductsByBrand);    // products by brand
+router.get("/category/:category",   getProductsByCategory); // products in a category
 
 // ── Single Product ────────────────────────────────────────────────────────────
 // Must come after named routes to avoid slug clash
-router.get("/:slug",                getProductBySlug);            // by slug (SEO friendly)
 router.get("/:id/related",          getRelatedProducts);    // same category, diff product
+router.get("/id/:id",               getProductById);
+router.get("/:slug",                getProductBySlug);      // by slug (SEO friendly)
+
+// ── Customer Actions ──────────────────────────────────────────────────────────
+router.post("/:id/buy-now", customerAuthenticate, validate(addToCartSchema.partial({ productId: true })), buyNow);
 
 export default router;
