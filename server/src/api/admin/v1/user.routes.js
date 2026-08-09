@@ -33,7 +33,7 @@ router.use(protect);
 router.get(
   "/",
   authenticate,
-  restrictTo("superadmin", "admin", "seller"),
+  // restrictTo("superadmin", "admin", "seller"),
   checkPermission(PERMISSIONS.USER.READ),
   getAllUsers
 );
@@ -41,8 +41,8 @@ router.get(
 // ── POST /api/admin/v1/users ──────────────────────────────────────────────────
 router.post(
   "/",
-  restrictTo("superadmin", "admin", "seller"),
-  checkPermission(PERMISSIONS.USER_CREATE),
+  // restrictTo("superadmin", "admin", "seller"),
+  checkPermission(PERMISSIONS.USER.CREATE),
 //   validate(createUserSchema),
   createUser
 );
@@ -50,16 +50,16 @@ router.post(
 // ── GET /api/admin/v1/users/:id ───────────────────────────────────────────────
 router.get(
   "/:id",
-  restrictTo("superadmin", "admin", "seller"),
-  checkPermission(PERMISSIONS.USER_READ),
+  // restrictTo("superadmin", "admin", "seller"),
+  checkPermission(PERMISSIONS.USER.READ),
   getUser
 );
 
 // ── PUT /api/admin/v1/users/:id ───────────────────────────────────────────────
 router.put(
   "/:id",
-  restrictTo("superadmin", "admin", "seller"),
-  checkPermission(PERMISSIONS.USER_UPDATE),
+  // restrictTo("superadmin", "admin", "seller"),
+  checkPermission(PERMISSIONS.USER.UPDATE),
 //   validate(updateUserSchema),
   updateUserById
 );
@@ -68,15 +68,15 @@ router.put(
 router.delete(
   "/:id",
   restrictTo("superadmin"),
-  checkPermission(PERMISSIONS.USER_DELETE),
+  checkPermission(PERMISSIONS.USER.DELETE),
   deleteUserById
 );
 
 // ── POST /api/admin/v1/users/:id/reset-password ───────────────────────────────
 router.post(
   "/:id/reset-password",
-  restrictTo("superadmin", "admin", "seller"),
-  checkPermission(PERMISSIONS.USER_RESET_PASSWORD),
+  // restrictTo("superadmin", "admin", "seller"),
+  checkPermission(PERMISSIONS.USER.RESET_PASSWORD),
   resetPassword
 );
 

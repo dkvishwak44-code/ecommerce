@@ -41,11 +41,13 @@ const protect = asyncHandler(async (req, res, next) => {
 // ─── First-Login Scope Guard ──────────────────────────────────────────────────
 
 const protectFirstLogin = asyncHandler(async (req, res, next) => {
-  const token = _extractBearerToken(req);
+  console.log("req.body :",req.body);
+  const {token} = req.body;
 
   let decoded;
   try {
     decoded = verifyAccessToken(token);
+    console.log("decoded :",decoded);
   } catch (err) {
     throw new AppError("Invalid or expired token", 401);
   }
@@ -56,7 +58,7 @@ const protectFirstLogin = asyncHandler(async (req, res, next) => {
 
   const user = await authRepository.findUserById(decoded.id);
   if (!user)          throw new AppError("User not found", 401);
-  if (!user.isActive) throw new AppError("Account is deactivated", 403);
+  if (!user.status === "active") throw new AppError("Account is deactivated", 403);
 
   if (!user.isFirstLogin) {
     throw new AppError("Password already changed. Please use the standard login flow.", 400);
@@ -160,7 +162,7 @@ const restrictTo = (...roles) =>
   asyncHandler(async (req, res, next) => {
     
     if (!roles.includes(req.user.roleName)) {
-      throw new AppError("You do not have permission to perform this action.", 403);
+      throw new AppError("You do not have permission to perform this action.11", 403);
     }
     next();
   });
@@ -185,10 +187,10 @@ const restrictTo = (...roles) =>
  *   router.delete("/users/:id", protect, checkPermission("user:delete"), deleteUser);
  */
 const checkPermission = (requiredPermission) =>
-  
   asyncHandler(async (req, res, next) => {
-    
     const { id, role } = req.user;
+
+    console.log("required permission :",requiredPermission);
 
     // Superadmin bypasses all permission checks
     if (role === "superadmin" || req.authUser?.isSuperAdmin) {
@@ -205,7 +207,7 @@ const checkPermission = (requiredPermission) =>
         path:     "role",
         populate: {
           path:   "permissions",
-          select: "slug isActive",
+          select: "slug isActive key",
         },
       })
       .lean();
@@ -224,7 +226,7 @@ const checkPermission = (requiredPermission) =>
 
     // Check if required permission exists and is active
     const hasPermission = permissions.some(
-      (p) => p.slug === requiredPermission && p.isActive !== false
+      (p) => p.key === requiredPermission && p.isActive !== false
     );
 
     if (!hasPermission) {

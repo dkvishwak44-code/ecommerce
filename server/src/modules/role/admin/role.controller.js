@@ -10,9 +10,9 @@ export const createRole = asyncHandler(async (req, res) => {
     console.log("createRole called with req.body:++++++++", req); // Debugging line
   const role = await service.createRole(req);
   return sendSuccess(res, {
-    statusCode: 201,
     message: "Role created successfully.",
     result: { role },
+    statusCode: 201,
   });
 });
 
@@ -25,6 +25,7 @@ export const getAllRoles = asyncHandler(async (req, res) => {
   return sendSuccess(res, {
     message: "Roles fetched successfully.",
     result,
+    statusCode:200
   });
 });
 

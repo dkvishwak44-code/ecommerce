@@ -149,7 +149,7 @@ export const getUserById = async (userId) => {
 export const getUsers = async (query = {}, requester = {}) => {
   const page = Math.max(1, parseInt(query.page) || 1);
   const limit = Math.min(100, parseInt(query.limit) || 20);
-  const skip = (page - 1) * limit;
+  const skip = (page - 1) * limit; 
 
   const filter = {};
 

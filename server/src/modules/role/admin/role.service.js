@@ -3,22 +3,44 @@ import Permission from "../../permission/permission.model.js";
 import { AppError } from "../../../utils/AppError.js";
 import { auditLog } from "../../../utils/auditLogger.js";
 import { SYSTEM_ROLES } from "../../../constants/roles.js";
+import Store from "../../store/store.model.js";
 
 /**
  * Create a new role
  */
 export const createRole = async (req) => {
-  const { name, displayName, description, permissions = [] } = req.body;
+  const {
+    name,
+    displayName,
+    description,
+    permissions = [],
+    storeId,
+  } = req.body;
+
+  // storeId required — custom store-level roles ke liye zaroori hai
+  if (!storeId) {
+    throw new AppError("storeId is required.", 400);
+  }
+
+  const store = await Store.findOne({
+    _id: storeId,
+    isActive: true,
+  });
+  if (!store) {
+    throw new AppError("Invalid or inactive storeId.", 404);
+  }
 
   // Check if role name already exists
-  const exists = await Role.findOne({ name: name.toLowerCase() });
+  const exists = await Role.findOne({ name: name.toLowerCase(), storeId });
   if (exists) {
     throw new AppError("Role with this name already exists.", 409);
   }
 
   // Validate permissions exist if provided
   if (permissions.length > 0) {
-    const validPermissions = await Permission.find({ _id: { $in: permissions } });
+    const validPermissions = await Permission.find({
+      _id: { $in: permissions },
+    });
     if (validPermissions.length !== permissions.length) {
       throw new AppError("One or more permission IDs are invalid.", 400);
     }
@@ -29,6 +51,7 @@ export const createRole = async (req) => {
     displayName,
     description,
     permissions,
+    storeId,
     isActive: true,
   });
 
@@ -49,14 +72,27 @@ export const createRole = async (req) => {
 /**
  * Get all roles with optional filtering
  */
+/**
+ * Get all roles with optional filtering
+ */
 export const getAllRoles = async (req) => {
-  const { page = 1, limit = 20, isSystem, isActive, search } = req.query;
+  const {
+    page = 1,
+    limit = 20,
+    isSystem,
+    isActive,
+    search,
+    storeId,
+  } = req.query;
 
   const pageNum = Math.max(1, Number(page) || 1);
   const limitNum = Math.min(100, Math.max(1, Number(limit) || 20));
   const skip = (pageNum - 1) * limitNum;
 
-  const filter = {};
+  const filter = {
+    // superadmin/admin kabhi bhi list mein nahi aayenge — assignable roles hi dikhenge
+    name: { $nin: [...SYSTEM_ROLES] },
+  };
 
   // Filter by system role status
   if (isSystem !== undefined) {
@@ -68,6 +104,10 @@ export const getAllRoles = async (req) => {
     filter.isActive = isActive === "true" || isActive === true;
   }
 
+  if (storeId) {
+    filter.storeId = storeId;
+  }
+
   // Search by name or display name
   if (search) {
     filter.$or = [
@@ -77,15 +117,18 @@ export const getAllRoles = async (req) => {
     ];
   }
 
+  console.log("filter :", filter);
+
   const [roles, total] = await Promise.all([
     Role.find(filter)
-    //   .populate("permissions")
       .sort({ isSystem: -1, name: 1 })
       .skip(skip)
       .limit(limitNum)
       .lean(),
     Role.countDocuments(filter),
   ]);
+
+  console.log("roles :", roles);
 
   const pages = Math.ceil(total / limitNum);
 
@@ -130,7 +173,7 @@ export const updateRole = async (req) => {
   if (role.isSystem && req.body.name) {
     throw new AppError(
       "System roles cannot be renamed. Only permissions and isActive can be changed.",
-      403
+      403,
     );
   }
 
@@ -142,7 +185,9 @@ export const updateRole = async (req) => {
   if (permissions !== undefined) {
     // Validate permissions exist
     if (permissions.length > 0) {
-      const validPermissions = await Permission.find({ _id: { $in: permissions } });
+      const validPermissions = await Permission.find({
+        _id: { $in: permissions },
+      });
       if (validPermissions.length !== permissions.length) {
         throw new AppError("One or more permission IDs are invalid.", 400);
       }
@@ -188,7 +233,7 @@ export const deleteRole = async (req) => {
   if (role.isDefault) {
     throw new AppError(
       "Default role cannot be deleted. Assign another role as default first.",
-      403
+      403,
     );
   }
 
@@ -220,7 +265,9 @@ export const assignPermissions = async (req) => {
 
   // Validate permissions exist
   if (permissions.length > 0) {
-    const validPermissions = await Permission.find({ _id: { $in: permissions } });
+    const validPermissions = await Permission.find({
+      _id: { $in: permissions },
+    });
     if (validPermissions.length !== permissions.length) {
       throw new AppError("One or more permission IDs are invalid.", 400);
     }
@@ -235,13 +282,13 @@ export const assignPermissions = async (req) => {
     // Add permissions to existing
     const existingIds = role.permissions.map((p) => p.toString());
     const newPermissions = permissions.filter(
-      (p) => !existingIds.includes(p.toString())
+      (p) => !existingIds.includes(p.toString()),
     );
     role.permissions = [...role.permissions, ...newPermissions];
   } else if (action === "remove") {
     // Remove permissions
     role.permissions = role.permissions.filter(
-      (p) => !permissions.includes(p.toString())
+      (p) => !permissions.includes(p.toString()),
     );
   }
 
@@ -280,14 +327,11 @@ export const bulkUpdateStatus = async (req) => {
   if (systemRoles.length > 0) {
     throw new AppError(
       `Cannot change status of system roles: ${systemRoles.map((r) => r.name).join(", ")}`,
-      403
+      403,
     );
   }
 
-  const result = await Role.updateMany(
-    { _id: { $in: ids } },
-    { isActive }
-  );
+  const result = await Role.updateMany({ _id: { $in: ids } }, { isActive });
 
   auditLog({
     action: "BULK_UPDATE",

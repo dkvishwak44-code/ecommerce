@@ -1,6 +1,8 @@
 // modules/product/client/product.service.js
 
+import mongoose from "mongoose";
 import Product from "../product.model.js";
+import Category from "../../category/category.model.js";
 import * as productRepository from "../product.repository.js";
 import { AppError } from "../../../utils/AppError.js";
 
@@ -72,8 +74,33 @@ export const getProducts = async (query = {}) => {
     ...buildPriceFilter(query),
   };
 
-  if (query.category)  filter.categoryId = query.category;
-  if (query.brand)     filter.brand      = query.brand;
+  if (query.category) {
+    const rawCategories = String(query.category).split(",").map((c) => c.trim()).filter(Boolean);
+    const objectIds = rawCategories.filter((c) => mongoose.Types.ObjectId.isValid(c));
+    const slugs = rawCategories.filter((c) => !mongoose.Types.ObjectId.isValid(c));
+
+    const matchedCats = await Category.find({
+      $or: [
+        ...(objectIds.length ? [{ _id: { $in: objectIds } }] : []),
+        ...(slugs.length ? [{ slug: { $in: slugs } }] : []),
+      ],
+    }).select("_id").lean();
+
+    const catIds = matchedCats.map((c) => c._id);
+    if (catIds.length > 0) {
+      const children = await Category.find({ parent: { $in: catIds } }).select("_id").lean();
+      const allCatIds = [...catIds, ...children.map((c) => c._id)];
+      filter.categoryId = { $in: allCatIds };
+    } else if (objectIds.length > 0) {
+      filter.categoryId = { $in: objectIds };
+    }
+  }
+
+  if (query.brand) {
+    const brands = String(query.brand).split(",").map((b) => b.trim()).filter(Boolean);
+    filter.brand = brands.length > 1 ? { $in: brands } : brands[0];
+  }
+
   if (query.store)     filter.storeId    = query.store;
   if (query.tag)       filter.tags       = { $in: [query.tag] };
   if (query.featured)  filter.isFeatured = true;

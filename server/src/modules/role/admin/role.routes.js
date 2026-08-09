@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as controller from "./role.controller.js";
-import { authenticate, checkPermission } from "../../../middleware/auth.middleware.js";
+// import { authenticate, checkPermission } from "../../../middleware/auth.middleware.js";
 // import { checkPermission } from "../../../middleware/permission.middleware.js";
 import { validate } from "../../../middleware/validate.middleware.js";
 import {
@@ -10,6 +10,7 @@ import {
   bulkUpdateStatusSchema,
 } from "./role.validation.js";
 import { PERMISSIONS } from "../../../constants/permissions.js";
+import { authenticate, checkPermission } from "../../../middleware/auth.middleware.js";
 
 const router = Router();
 
@@ -28,7 +29,7 @@ router.use(authenticate);
  */
 router.get(
   "/default",
-  checkPermission("role.read"),
+  checkPermission(PERMISSIONS.ROLE.READ),
   controller.getDefaultRole
 );
 
@@ -38,7 +39,7 @@ router.get(
  */
 router.get(
   "/system/list",
-  checkPermission("role.read_all"),
+  checkPermission(PERMISSIONS.ROLE.READ),
   controller.getSystemRoles
 );
 
@@ -48,7 +49,7 @@ router.get(
  */
 router.get(
   "/",
-  checkPermission("role.read_all"),
+  checkPermission(PERMISSIONS.ROLE.READ),
   controller.getAllRoles
 );
 
@@ -58,7 +59,7 @@ router.get(
  */
 router.get(
   "/:id",
-  checkPermission("role.read"),
+  checkPermission(PERMISSIONS.ROLE.READ),
   controller.getRoleById
 );
 
@@ -87,7 +88,7 @@ router.post(
  */
 router.patch(
   "/bulk/status",
-  checkPermission("role.update"),
+  checkPermission(PERMISSIONS.ROLE.UPDATE),
   validate(bulkUpdateStatusSchema),
   controller.bulkUpdateStatus
 );
@@ -98,7 +99,7 @@ router.patch(
  */
 router.patch(
   "/:id/set-default",
-  checkPermission("role.update"),
+  checkPermission(PERMISSIONS.ROLE.UPDATE),
   controller.setDefaultRole
 );
 
@@ -108,7 +109,7 @@ router.patch(
  */
 router.patch(
   "/:id/permissions",
-  checkPermission("role.assign_permissions"),
+  checkPermission(PERMISSIONS.ROLE.ASSIGN_PERMISSIONS),
   validate(assignPermissionsSchema),
   controller.assignPermissions
 );
@@ -119,8 +120,8 @@ router.patch(
  */
 router.patch(
   "/:id",
-  checkPermission("role.update"),
-  validate(updateRoleSchema),
+  checkPermission(PERMISSIONS.ROLE.UPDATE),
+  // validate(updateRoleSchema),
   controller.updateRole
 );
 
@@ -134,7 +135,7 @@ router.patch(
  */
 router.delete(
   "/:id",
-  checkPermission("role.delete"),
+  checkPermission(PERMISSIONS.ROLE.DELETE),
   controller.deleteRole
 );
 

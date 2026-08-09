@@ -79,6 +79,8 @@ const login = asyncHandler(async (req, res) => {
     userAgent: req.headers["user-agent"],
   };
 
+
+  
   const result = await authService.login(email, password, meta);
 
   
@@ -103,7 +105,7 @@ const login = asyncHandler(async (req, res) => {
  * On success, issues full accessToken + refreshToken and sets isFirstLogin=false.
  */
 const changeFirstLoginPassword = asyncHandler(async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
+  const { password } = req.body;
   const meta = {
     ip: req.ip || req.headers["x-forwarded-for"],
     userAgent: req.headers["user-agent"],
@@ -111,8 +113,7 @@ const changeFirstLoginPassword = asyncHandler(async (req, res) => {
 
   const result = await authService.changeFirstLoginPassword(
     req.user.id,
-    currentPassword,
-    newPassword,
+   password,
     meta
   );
 
@@ -151,7 +152,15 @@ const changePassword = asyncHandler(async (req, res) => {
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
   const result = await authService.forgotPassword(email);
-  return sendSuccess(res, null, result.message, 200);
+  return sendSuccess(res,{message :"Otp sent to your email ",result, statusCode :200});
+});
+
+
+const resetPasswordWithOtp = asyncHandler(async(req,res)=>{
+  const {email,otp,newPassword} = req.body;
+  console.log("email :+++++++",email,otp,newPassword)
+  const result = await authService.resetPasswordWithOtp(email,otp,newPassword);
+  return sendSuccess(res,{message:"password reset successfully",result})
 });
 
 // ─── Reset Password ───────────────────────────────────────────────────────────
@@ -295,6 +304,7 @@ export {
   changeFirstLoginPassword,
   changePassword,
   forgotPassword,
+  resetPasswordWithOtp,
   resetPassword,
   register,
   sendOtp,

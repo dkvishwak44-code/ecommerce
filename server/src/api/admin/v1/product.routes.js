@@ -21,11 +21,11 @@ import { uploadProductImages } from "../../../config/multer.js";
 
 const router = Router();
 
-router.use(authenticate, restrictTo("superadmin", "admin", "seller"));
+router.use(authenticate);
 
 router.get(
   "/",
-  checkPermission(PERMISSIONS.PRODUCT.READ_ALL),
+  checkPermission(PERMISSIONS.PRODUCT.READ),
   getAllProducts
 );
 

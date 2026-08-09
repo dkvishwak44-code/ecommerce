@@ -13,7 +13,6 @@ import {
 
 export const createUser = asyncHandler(async (req, res) => {
   const { name, email, phone, roleId, roleName, storeId } = req.body;
-  console.log( name, email, phone, roleId, roleName, storeId );
   const result = await createUserByAdmin({
     name,
     email,
@@ -27,9 +26,10 @@ export const createUser = asyncHandler(async (req, res) => {
 });
 
 export const getAllUsers = asyncHandler(async (req, res) => {
+  console.log("req body :",req.body);
    const requester = {
       roleName: req.user.roleName, // ya req.user.roleName, jo bhi tumhare JWT payload mein hai
-      storeId: req.user.storeId, // req.user.storeId
+      storeId: req?.query?. storeId, // req.user.storeId
     };
   const result = await getUsers(req.query, requester);
   console.log("result :",result);

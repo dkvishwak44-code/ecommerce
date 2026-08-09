@@ -1,5 +1,5 @@
 // const crypto = require('crypto');
-import crypto from "crypto"
+import crypto from "crypto";
 
 /**
  * Generate a numeric OTP of the specified length.
@@ -9,10 +9,13 @@ import crypto from "crypto"
  */
 const generateOtp = (length = 6) => {
   const max = Math.pow(10, length);
-  // Use crypto for cryptographically secure random numbers
   const randomBytes = crypto.randomBytes(4);
   const randomNumber = randomBytes.readUInt32BE(0) % max;
-  return String(randomNumber).padStart(length, '0');
+  const otp = String(randomNumber).padStart(length, "0");
+
+  const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+
+  return { otp, otpHash };
 };
 
 /**
@@ -42,7 +45,7 @@ const isOtpExpired = (expiresAt) => {
  * @returns {string} Hex token string
  */
 const generateSecureToken = (byteLength = 32) => {
-  return crypto.randomBytes(byteLength).toString('hex');
+  return crypto.randomBytes(byteLength).toString("hex");
 };
 
 /**
@@ -52,7 +55,7 @@ const generateSecureToken = (byteLength = 32) => {
  * @returns {string} SHA-256 hex digest
  */
 const hashToken = (token) => {
-  return crypto.createHash('sha256').update(token).digest('hex');
+  return crypto.createHash("sha256").update(token).digest("hex");
 };
 
 export {

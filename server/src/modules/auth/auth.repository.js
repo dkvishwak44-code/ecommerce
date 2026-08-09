@@ -15,38 +15,37 @@ class AuthRepository {
       .lean();
   }
 
+  async findUserByEmailWithPassword(email) {
+    return User.findOne({ email: email.toLowerCase() })
+      .select(
+        "+password +isFirstLogin +loginAttempts +lockUntil +isActive +isEmailVerified +createdAt +updatedAt",
+      )
+      .populate({
+        path: "role",
+        select: "name", // ← sirf name, permissions nahi
+      });
+  }
 
-async findUserByEmailWithPassword(email) {
-  return User.findOne({ email: email.toLowerCase() })
-    .select("+password +isFirstLogin +loginAttempts +lockUntil +isActive +isEmailVerified +createdAt +updatedAt")
-    .populate({
-      path: "role",
-      select: "name", // ← sirf name, permissions nahi
-    });
-}
+  async findUserPermissions(userId) {
+    return User.findById(userId)
+      .populate({
+        path: "role",
+        select: "name permissions",
+        populate: {
+          path: "permissions",
+          select: "-_id key action",
+        },
+      })
+      .lean();
+  }
 
+  async findStoreById(storeId) {
+    return Store.findById(storeId).lean();
+  }
 
-async findUserPermissions(userId) {
-  return User.findById(userId)
-    .populate({
-      path: "role",
-      select: "name permissions",
-      populate: {
-        path: "permissions",
-        select: "-_id key action",
-      },
-    })
-    .lean();
-}
-
-
-async findStoreById(storeId) {
-  return Store.findById(storeId).lean();
-}
-
-async findAllStores() {
-  return Store.find({ isDeleted: false, isActive: true }).lean();
-}
+  async findAllStores() {
+    return Store.find({ isDeleted: false, isActive: true }).lean();
+  }
 
   async findRoleById(roleId) {
     return Role.findById(roleId).lean();
@@ -58,7 +57,7 @@ async findAllStores() {
 
   async findUserByIdWithPassword(id) {
     return User.findById(id).select(
-      "+password +isFirstLogin +loginAttempts +lockUntil"
+      "+password +isFirstLogin +loginAttempts +lockUntil",
     );
   }
 
@@ -80,7 +79,7 @@ async findAllStores() {
 
   async updateUserById(id, updates) {
     return User.findByIdAndUpdate(id, updates, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).lean();
   }
@@ -89,15 +88,20 @@ async findAllStores() {
     return User.findByIdAndUpdate(
       id,
       {
-        password: hashedPassword,
-        isFirstLogin: false,
-        passwordChangedAt: new Date(),
-        passwordResetToken: undefined,
-        passwordResetExpires: undefined,
-        loginAttempts: 0,
-        lockUntil: undefined,
+        $set: {
+          password: hashedPassword,
+          isFirstLogin: false,
+          isEmailVerified: true,
+          passwordChangedAt: new Date(),
+          loginAttempts: 0,
+        },
+        $unset: {
+          passwordResetToken: "",
+          passwordResetExpires: "",
+          lockUntil: "",
+        },
       },
-      { new: true }
+      { returnDocument: "after" },
     ).lean();
   }
 
@@ -105,19 +109,23 @@ async findAllStores() {
     return User.findByIdAndUpdate(
       id,
       { $inc: { loginAttempts: 1 } },
-      { new: true }
+      { returnDocument: "after" },
     ).select("loginAttempts lockUntil");
   }
 
   async lockUserAccount(id, lockUntil) {
-    return User.findByIdAndUpdate(id, { lockUntil }, { new: true });
+    return User.findByIdAndUpdate(
+      id,
+      { lockUntil },
+      { returnDocument: "after" },
+    );
   }
 
   async resetLoginAttempts(id) {
     return User.findByIdAndUpdate(
       id,
-      { loginAttempts: 0, lockUntil: undefined },
-      { new: true }
+      { loginAttempts: 0, lockUntil: null },
+      { returnDocument: "after" },
     );
   }
 
@@ -135,19 +143,21 @@ async findAllStores() {
     });
   }
 
-  async setOtp(id, hashedOtp, expires) {
-    return User.findByIdAndUpdate(id, {
-      otp: hashedOtp,
-      otpExpires: expires,
-      otpAttempts: 0,
-    });
-  }
+async setOtp(id, hashedOtp, expires) {
+  return User.findByIdAndUpdate(id, {
+    $set: {
+      "otp.code": hashedOtp,
+      "otp.expiresAt": expires,
+      "otp.attempts": 0,
+    },
+  });
+}
 
-  async findUserByOtp(email) {
-    return User.findOne({ email: email.toLowerCase() }).select(
-      "+otp +otpExpires +otpAttempts"
-    );
-  }
+ async findUserByOtp(email) {
+  return User.findOne({ email: email.toLowerCase() }).select(
+    "+otp.code +otp.expiresAt +otp.attempts",
+  );
+}
 
   async incrementOtpAttempts(id) {
     return User.findByIdAndUpdate(id, { $inc: { otpAttempts: 1 } });
@@ -155,22 +165,32 @@ async findAllStores() {
 
   async clearOtp(id) {
     return User.findByIdAndUpdate(id, {
-      otp: undefined,
-      otpExpires: undefined,
-      otpAttempts: 0,
+      $unset: {
+        otp: "",
+        otpExpires: "",
+      },
+      $set: {
+        otpAttempts: 0,
+      },
     });
   }
 
   async markEmailVerified(id) {
     return User.findByIdAndUpdate(id, {
-      isEmailVerified: true,
-      emailVerificationToken: undefined,
-      emailVerificationExpires: undefined,
+      $set: { isEmailVerified: true },
+      $unset: {
+        emailVerificationToken: "",
+        emailVerificationExpires: "",
+      },
     });
   }
 
   async setLastLogin(id) {
-    return User.findByIdAndUpdate(id, { lastLoginAt: new Date() });
+    return User.findByIdAndUpdate(
+      id,
+      { lastLoginAt: new Date() },
+      { returnDocument: "after" },
+    );
   }
 
   // ─── Refresh Token Management ─────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import { sendEmail } from "../../utils/sendEmail.js";
 import { emitAuthEvent } from "./auth.events.js";
 import { AppError } from "../../utils/AppError.js";
 import { logger } from "../../config/logger.js";
+import { resetPasswordOtpTemplate } from "../../utils/emailTemplates/userCreatedTemplate.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -56,7 +57,6 @@ class AuthService {
       await this._handleFailedLogin(user);
       throw new AppError("Invalid email or password", 401);
     }
-
     await authRepository.resetLoginAttempts(user._id);
     await authRepository.setLastLogin(user._id);
 
@@ -72,6 +72,7 @@ class AuthService {
         message:
           "You are using a system-generated password. Please change your password to continue.",
         firstLoginToken,
+        user: this._sanitizeUser(user),
       };
     }
 
@@ -97,7 +98,8 @@ class AuthService {
       storeData = await authRepository.findAllStores();
     } else if (user.store) {
       // owner/seller → sirf apni store
-      storeData = await authRepository.findStoreById(user.store);
+      const store = await authRepository.findStoreById(user.store);
+      storeData = store ? [store] : [];
     }
 
     emitAuthEvent("auth:login", { userId: user._id, ip: meta.ip });
@@ -105,12 +107,13 @@ class AuthService {
 
     return {
       isFirstLogin: false,
+      isLoggedIn: true,
       accessToken,
       refreshToken,
       permissions,
       expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "1d",
       user: this._sanitizeUser(user),
-       store: storeData,
+      store: storeData,
     };
   }
 
@@ -171,12 +174,7 @@ class AuthService {
 
   // ─── Change Password (First Login) ───────────────────────────────────────────
 
-  async changeFirstLoginPassword(
-    userId,
-    currentPassword,
-    newPassword,
-    meta = {},
-  ) {
+  async changeFirstLoginPassword(userId, password, meta = {}) {
     const user = await authRepository.findUserByIdWithPassword(userId);
     if (!user) throw new AppError("User not found", 404);
 
@@ -187,17 +185,17 @@ class AuthService {
       );
     }
 
-    const isMatch = await comparePassword(currentPassword, user.password);
-    if (!isMatch) throw new AppError("Current password is incorrect", 401);
+    // const isMatch = await comparePassword(currentPassword, user.password);
+    // if (!isMatch) throw new AppError("Current password is incorrect", 401);
 
-    const isSame = await comparePassword(newPassword, user.password);
-    if (isSame)
-      throw new AppError(
-        "New password cannot be the same as the current password",
-        400,
-      );
+    // const isSame = await comparePassword(newPassword, user.password);
+    // if (isSame)
+    //   throw new AppError(
+    //     "New password cannot be the same as the current password",
+    //     400,
+    //   );
 
-    const hashedPassword = await hashPassword(newPassword);
+    const hashedPassword = await hashPassword(password);
     await authRepository.updateUserPassword(user._id, hashedPassword);
     await authRepository.revokeAllUserTokens(user._id);
 
@@ -253,51 +251,102 @@ class AuthService {
 
   // ─── Forgot Password ──────────────────────────────────────────────────────────
 
+  // constants
+  // const OTP_EXPIRY_MS = 1000 * 60 * 10;   // 10 minutes
+  // const OTP_MAX_ATTEMPTS = 5;
+
+  /**
+   * Generates a 6-digit numeric OTP.
+   */
+  // const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+
   async forgotPassword(email) {
     const user = await authRepository.findUserByEmail(email);
     if (!user) {
       return {
-        message:
-          "If an account with that email exists, a reset link has been sent.",
+        message: "If an account with that email exists, an OTP has been sent.",
       };
     }
 
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(rawToken)
-      .digest("hex");
-    const expires = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
-
-    await authRepository.setPasswordResetToken(user._id, hashedToken, expires);
-
-    const resetUrl = `${process.env.CLIENT_URL}/auth/reset-password?token=${rawToken}`;
-
     try {
-      await sendEmail({
-        to: user.email,
-        subject: "Password Reset Request",
-        template: "resetPassword",
-        data: { name: user.name, resetUrl, expiresIn: "1 hour" },
+      const { otp, otpHash } = await generateOtp();
+      const expires = new Date(Date.now() + OTP_EXPIRY_MS);
+
+      await authRepository.setOtp(user._id, otpHash, expires);
+
+      const template = resetPasswordOtpTemplate({
+        name: user.name,
+        otp,
+        loginUrl: `${process.env.ADMIN_URL}/auth/login`,
       });
+      console.log("otp :", otp);
+      console.log("template :", template);
+
+      await sendOtp(user, "forget-otp", template);
+
+      // await sendOtp(user.email, "forget-password");
+
+      // await sendEmail({
+      //   to: user.email,
+      //   subject: "Password Reset OTP",
+      //   template: "resetPasswordOtp",
+      //   data: { name: user.name, otp, expiresIn: "10 minutes" },
+      // });
     } catch (err) {
-      await authRepository.setPasswordResetToken(
-        user._id,
-        undefined,
-        undefined,
-      );
-      logger.error(`Failed to send reset email to ${email}: ${err.message}`);
+      // await authRepository.clearOtp(user._id);
+      logger.error(`Failed to send reset OTP to ${email}: ${err.message}`);
+      throw new AppError("Failed to send OTP. Please try again later.", 500);
+    }
+
+    logger.info(`Password reset OTP sent to: ${email}`);
+    return {
+      message: "If an account with that email exists, an OTP has been sent.",
+    };
+  }
+
+  /**
+   * Verifies OTP and resets password in a single step.
+   */
+  async resetPasswordWithOtp(email, otp, newPassword) {
+    const user = await authRepository.findUserByOtp(email);
+    if (!user || !user.otp?.code) {
+      throw new AppError("Invalid or expired OTP.", 400);
+    }
+
+    // Expiry check
+    if (!user.otp.expiresAt || user.otp.expiresAt.getTime() < Date.now()) {
+      await authRepository.clearOtp(user._id);
+      throw new AppError("OTP has expired. Please request a new one.", 400);
+    }
+
+    // Max attempts check — brute-force protection
+    if (user.otp.attempts >= OTP_MAX_ATTEMPTS) {
+      await authRepository.clearOtp(user._id);
       throw new AppError(
-        "Failed to send reset email. Please try again later.",
-        500,
+        "Too many incorrect attempts. Please request a new OTP.",
+        429,
       );
     }
 
-    logger.info(`Password reset token sent to: ${email}`);
-    return {
-      message:
-        "If an account with that email exists, a reset link has been sent.",
-    };
+    const hashedInputOtp = crypto
+      .createHash("sha256")
+      .update(otp)
+      .digest("hex");
+
+    if (hashedInputOtp !== user.otp.code) {
+      await authRepository.incrementOtpAttempts(user._id);
+      throw new AppError("Incorrect OTP.", 400);
+    }
+
+    // OTP valid — set new password
+    user.password = newPassword; // pre-save hook hash kar dega
+    user.isFirstLogin = false;
+    await user.save();
+
+    await authRepository.clearOtp(user._id);
+
+    logger.info(`Password reset successful via OTP for: ${email}`);
+    return { message: "Password reset successful. Please log in." };
   }
 
   // ─── Reset Password ───────────────────────────────────────────────────────────
@@ -331,29 +380,21 @@ class AuthService {
 
   // ─── Send OTP ─────────────────────────────────────────────────────────────────
 
-  async sendOtp(email, purpose = "verification") {
-    const user = await authRepository.findUserByEmail(email);
-    if (!user) throw new AppError("User not found", 404);
-
-    const { otp, otpHash } = await generateOtp();
-    const expires = new Date(Date.now() + OTP_EXPIRY_MS);
-
-    await authRepository.setOtp(user._id, otpHash, expires);
-
+  async sendOtp(user, purpose = "verification", template) {
     try {
       await sendEmail({
         to: user.email,
-        subject:
-          purpose === "verification" ? "Your Verification Code" : "Your OTP",
-        template: "otp",
-        data: { name: user.name, otp, expiresIn: "10 minutes", purpose },
+        subject: template.subject,
+        template,
+        html: template.html,
+        text: template.text,
       });
     } catch (err) {
-      logger.error(`Failed to send OTP to ${email}: ${err.message}`);
+      logger.error(`Failed to send OTP to ${user.email}: ${err.message}`);
       throw new AppError("Failed to send OTP. Please try again.", 500);
     }
 
-    logger.info(`OTP sent to: ${email} for purpose: ${purpose}`);
+    logger.info(`OTP sent to: ${user.email} for purpose: ${purpose}`);
     return { message: "OTP sent successfully" };
   }
 
@@ -558,6 +599,8 @@ export const changeFirstLoginPassword = (...args) =>
   authService.changeFirstLoginPassword(...args);
 export const changePassword = (...args) => authService.changePassword(...args);
 export const forgotPassword = (...args) => authService.forgotPassword(...args);
+export const resetPasswordWithOtp = (...args) =>
+  authService.resetPasswordWithOtp(...args);
 export const resetPassword = (...args) => authService.resetPassword(...args);
 export const sendOtp = (...args) => authService.sendOtp(...args);
 export const verifyOtp = (...args) => authService.verifyOtp(...args);

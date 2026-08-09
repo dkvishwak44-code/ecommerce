@@ -112,7 +112,9 @@ const userSchema = new Schema(
     // Cached role name — avoids a populate() on every middleware check.
     roleName: {
       type:    String,
-      enum:    [...SYSTEM_ROLES, "custom"],
+      // enum:    [...SYSTEM_ROLES, "custom"],
+      trim:true,
+      required: [true, "Role name is required."],
       default: ROLES.SELLER,
     },
 

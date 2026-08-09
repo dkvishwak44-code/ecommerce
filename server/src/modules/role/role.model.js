@@ -46,6 +46,12 @@ const roleSchema = new Schema(
       default: false,
       index: true,
     },
+    storeId: {
+      type:    Schema.Types.ObjectId,
+      ref:     "Store",
+      default: null,
+      index:   true,
+    },
 
     isDefault: {
       type: Boolean,

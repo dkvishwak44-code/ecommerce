@@ -90,4 +90,87 @@ ${loginUrl ? `Login: ${loginUrl}` : ""}
   };
 };
 
-export {userCreatedTemplate};
+
+
+const resetPasswordOtpTemplate = ({
+  name,
+  otp,
+  expiresIn = "10 minutes",
+}) => {
+  return {
+    subject: "Your Password Reset OTP",
+
+    html: `
+      <div
+        style="
+          font-family: Arial, sans-serif;
+          max-width: 600px;
+          margin: auto;
+          padding: 20px;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+        "
+      >
+        <h2 style="color: #2563eb;">
+          Hello ${name}
+        </h2>
+
+        <p>
+          We received a request to reset your password. Use the OTP below to proceed.
+        </p>
+
+        <div
+          style="
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+          "
+        >
+          <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px;">
+            Your One-Time Password
+          </p>
+          <p
+            style="
+              margin: 0;
+              font-size: 32px;
+              font-weight: bold;
+              letter-spacing: 8px;
+              color: #2563eb;
+            "
+          >
+            ${otp}
+          </p>
+        </div>
+
+        <p>
+          This OTP is valid for <strong>${expiresIn}</strong>. Do not share this code with anyone.
+        </p>
+
+        <p style="color: #6b7280; font-size: 13px;">
+          If you did not request a password reset, please ignore this email or contact support if you have concerns.
+        </p>
+
+        <p style="margin-top: 30px; color: #6b7280;">
+          Thanks,<br />
+          CRM Team
+        </p>
+      </div>
+    `,
+
+    text: `
+Hello ${name}
+
+We received a request to reset your password.
+
+Your OTP: ${otp}
+
+This OTP is valid for ${expiresIn}. Do not share this code with anyone.
+
+If you did not request a password reset, please ignore this email.
+    `,
+  };
+};
+
+export {userCreatedTemplate,resetPasswordOtpTemplate };
